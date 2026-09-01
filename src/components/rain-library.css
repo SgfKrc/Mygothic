@@ -9,11 +9,23 @@
 .rain-library__stage {
   --library-pointer-x: 0;
   --library-pointer-y: 0;
+  --library-camera-x: 0px;
   position: relative;
   min-height: 100vh;
   isolation: isolate;
-  overflow: hidden;
+  overflow: clip;
   background: #0e1017;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.rain-library__stage.is-panning {
+  cursor: grabbing;
+}
+
+.rain-library__stage:focus-visible {
+  outline: 1px solid rgba(213, 170, 111, .75);
+  outline-offset: -5px;
 }
 
 .rain-library__canvas,
@@ -39,13 +51,21 @@
 
 .rain-library__stage::before {
   z-index: -1;
-  background: linear-gradient(112deg, rgba(5, 7, 12, .62), transparent 34%, transparent 72%, rgba(4, 4, 8, .63));
+  background: linear-gradient(112deg, rgba(5, 7, 12, .25), transparent 24%, transparent 82%, rgba(4, 4, 8, .25));
 }
 
 .rain-library__stage::after {
   z-index: 6;
-  background: radial-gradient(ellipse at center, transparent 39%, rgba(1, 2, 5, .58) 100%);
+  background: radial-gradient(ellipse at center, transparent 44%, rgba(1, 2, 5, .38) 100%);
   mix-blend-mode: multiply;
+}
+
+.rain-library--fire .rain-library__stage::before {
+  background: linear-gradient(112deg, rgba(83, 34, 24, .22), transparent 24%, transparent 82%, rgba(4, 4, 8, .24));
+}
+
+.rain-library--fire .rain-library__stage::after {
+  background: radial-gradient(ellipse at center, transparent 48%, rgba(1, 2, 5, .25) 100%);
 }
 
 .rain-library__grain {
@@ -118,6 +138,8 @@
   z-index: 8;
   inset: 0;
   pointer-events: none;
+  transform: translateX(calc(-1 * var(--library-camera-x, 0px)));
+  will-change: transform;
 }
 
 .library-hotspot {
@@ -170,12 +192,71 @@
   transform: translate(-50%, -50%) translateY(-3px);
 }
 
+.library-hotspot--window {
+  transform: translate(calc(-50% + var(--library-hotspot-window-shift, 0px)), -50%);
+}
+
+.library-hotspot--fire {
+  transform: translate(calc(-50% + var(--library-hotspot-fire-shift, 0px)), -50%);
+}
+
+.library-hotspot--window:hover,
+.library-hotspot--window:focus-visible {
+  transform: translate(calc(-50% + var(--library-hotspot-window-shift, 0px)), calc(-50% - 3px));
+}
+
+.library-hotspot--fire:hover,
+.library-hotspot--fire:focus-visible {
+  transform: translate(calc(-50% + var(--library-hotspot-fire-shift, 0px)), calc(-50% - 3px));
+}
+
+.library-hotspot--door {
+  transform: translate(calc(-50% + var(--library-hotspot-door-shift, 0px)), -50%);
+}
+
+.library-hotspot--chandelier {
+  transform: translate(calc(-50% + var(--library-hotspot-chandelier-shift, 0px)), -50%);
+  border-color: rgba(224, 173, 103, .62);
+}
+
+.library-hotspot--door:hover,
+.library-hotspot--door:focus-visible {
+  transform: translate(calc(-50% + var(--library-hotspot-door-shift, 0px)), calc(-50% - 3px));
+}
+
+.library-hotspot--chandelier:hover,
+.library-hotspot--chandelier:focus-visible {
+  transform: translate(calc(-50% + var(--library-hotspot-chandelier-shift, 0px)), calc(-50% - 3px));
+}
+
 .library-hotspot.is-active {
   border-color: rgba(209, 159, 96, .7);
 }
 
 .library-hotspot--book {
   border-color: rgba(216, 174, 114, .64);
+}
+
+.library-hotspot--portrait {
+  border-color: rgba(199, 157, 108, .58);
+}
+
+.library-hotspot--tarot {
+  border-color: rgba(155, 122, 185, .66);
+  color: rgba(236, 223, 244, .9);
+  background: rgba(25, 17, 32, .78);
+}
+
+.library-hotspot--tarot svg {
+  color: #b79bce;
+}
+
+.library-hotspot--lamp {
+  border-color: rgba(225, 173, 96, .64);
+}
+
+.library-hotspot--door {
+  border-color: rgba(169, 132, 111, .52);
 }
 
 .library-hotspot--book::after {
@@ -354,6 +435,29 @@
   color: rgba(194, 151, 99, .64);
 }
 
+.library-quote {
+  position: absolute;
+  z-index: 11;
+  bottom: 8.5rem;
+  left: 50%;
+  width: min(38rem, calc(100% - 2.5rem));
+  padding: .9rem 1.4rem 1rem;
+  border-top: 1px solid rgba(211, 167, 109, .58);
+  border-bottom: 1px solid rgba(211, 167, 109, .26);
+  color: rgba(244, 229, 208, .92);
+  background: rgba(15, 10, 14, .72);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .32);
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(.88rem, 1.7vw, 1.18rem);
+  letter-spacing: .16em;
+  line-height: 1.8;
+  text-align: center;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .9);
+  transform: translateX(-50%);
+  animation: quote-in 420ms cubic-bezier(.2, .8, .2, 1) both;
+  pointer-events: none;
+}
+
 .rain-library__sr-status {
   position: absolute;
   width: 1px;
@@ -374,6 +478,11 @@
 @keyframes poem-in {
   from { opacity: 0; transform: translate(-50%, calc(-50% + 1rem)); }
   to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@keyframes quote-in {
+  from { opacity: 0; transform: translate(-50%, .6rem); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 @media (max-width: 720px) {
@@ -425,6 +534,14 @@
     right: 1rem;
   }
 
+  .library-quote {
+    bottom: 7.25rem;
+    width: min(30rem, calc(100% - 2rem));
+    padding-inline: .9rem;
+    font-size: .82rem;
+    letter-spacing: .1em;
+  }
+
   .library-poem {
     padding-inline: 1.5rem;
   }
@@ -432,7 +549,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .library-hotspot::before,
-  .library-poem {
+  .library-poem,
+  .library-quote {
     animation: none;
   }
 }

@@ -1,0 +1,155 @@
+.saint-relic-scene {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #e8ded1;
+  background: #07090e;
+}
+
+.saint-relic-stage {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  overflow: hidden;
+  background: #07090e;
+}
+
+.saint-relic-canvas {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.saint-relic-stage::before,
+.saint-relic-stage::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+}
+
+.saint-relic-stage::before {
+  background: linear-gradient(90deg, rgba(1, 3, 7, .62), transparent 21%, transparent 79%, rgba(1, 3, 7, .62));
+}
+
+.saint-relic-stage::after {
+  background: radial-gradient(ellipse at 50% 58%, transparent 34%, rgba(1, 2, 6, .67) 100%);
+  mix-blend-mode: multiply;
+}
+
+.saint-relic-header {
+  position: absolute;
+  z-index: 2;
+  top: clamp(5.7rem, 12vh, 8.25rem);
+  left: clamp(1.25rem, 6vw, 7.5rem);
+  max-width: min(34rem, 78vw);
+  pointer-events: none;
+  text-shadow: 0 3px 20px rgba(0, 0, 0, .88);
+}
+
+.saint-relic-kicker {
+  margin: 0 0 .85rem;
+  color: #be9461;
+  font-size: .7rem;
+  letter-spacing: .26em;
+  line-height: 1.6;
+}
+
+.saint-relic-kicker span {
+  padding-inline: .35rem;
+  color: rgba(209, 174, 125, .55);
+}
+
+.saint-relic-header h1 {
+  margin: 0;
+  color: #f2e7da;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: clamp(2.8rem, 7vw, 7rem);
+  font-weight: 500;
+  letter-spacing: .11em;
+  line-height: .96;
+}
+
+.saint-relic-subtitle {
+  margin: 1rem 0 0;
+  color: rgba(220, 195, 174, .67);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(.65rem, 1.15vw, .9rem);
+  letter-spacing: .31em;
+}
+
+.saint-relic-back {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 3rem;
+  padding: .66rem .85rem;
+  border: 1px solid rgba(204, 166, 103, .62);
+  border-radius: 2px;
+  color: rgba(241, 226, 204, .9);
+  background: rgba(8, 10, 15, .82);
+  box-shadow: 0 0 0 1px rgba(2, 3, 7, .7), 0 9px 28px rgba(0, 0, 0, .45);
+  cursor: pointer;
+  font-size: .72rem;
+  letter-spacing: .14em;
+  transform: translateX(-50%);
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.saint-relic-back svg {
+  width: 1rem;
+  height: 1rem;
+  color: #d6aa69;
+}
+
+.saint-relic-back:hover,
+.saint-relic-back:focus-visible {
+  border-color: #e5bd7c;
+  color: #fff2df;
+  background: rgba(39, 29, 26, .9);
+  box-shadow: 0 0 22px rgba(202, 151, 83, .23), 0 10px 30px rgba(0, 0, 0, .55);
+  outline: none;
+  transform: translateX(-50%) translateY(-3px);
+}
+
+@media (max-width: 720px) {
+  .saint-relic-header {
+    top: 6rem;
+    left: 1.1rem;
+    max-width: calc(100% - 2.2rem);
+  }
+
+  .saint-relic-header h1 {
+    font-size: clamp(2.45rem, 12vw, 4.6rem);
+  }
+
+  .saint-relic-subtitle {
+    letter-spacing: .18em;
+  }
+
+  .saint-relic-back {
+    width: 2.85rem;
+    min-height: 2.85rem;
+    padding: .68rem;
+    border-radius: 50%;
+    justify-content: center;
+  }
+
+  .saint-relic-back span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

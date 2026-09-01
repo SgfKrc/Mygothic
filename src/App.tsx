@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Accessibility, ArrowLeft, VolumeX, Waves } from 'lucide-react'
 import CemeteryScene from './components/CemeteryScene'
+import ClockTowerScene from './components/ClockTowerScene'
 import RainLibrary, { type RainLibraryCue } from './components/RainLibrary'
+import SaintRelicScene from './components/SaintRelicScene'
 import { SCENE_ROUTES, type AudioState, type SceneId } from './types'
 
 const getSceneFromHash = (): SceneId => {
   const route = window.location.hash.replace(/^#\/?/, '').split('/')[0]
   if (route === 'library') return 'library'
+  if (route === 'clocktower') return 'clocktower'
+  if (route === 'saint-relic') return 'saint-relic'
   if (route === 'unavailable') return 'unavailable'
   return 'cemetery'
 }
@@ -115,6 +119,8 @@ export default function App() {
     <div className="app-shell">
       {scene === 'cemetery' && <CemeteryScene reducedMotion={reducedMotion} />}
       {scene === 'library' && <RainLibrary reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} onAmbientCue={onAmbientCue} />}
+      {scene === 'clocktower' && <ClockTowerScene reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} />}
+      {scene === 'saint-relic' && <SaintRelicScene reducedMotion={reducedMotion} />}
       {scene === 'unavailable' && <UnavailableScene />}
       <header className="hud" aria-label="场景导航">
         <div className="hud__location" aria-live="polite"><span className="hud__kicker">当前位置</span><strong>{currentRoute.label}</strong></div>

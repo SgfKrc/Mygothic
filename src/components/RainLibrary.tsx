@@ -75,6 +75,106 @@ const seededRandom = (seed: number) => {
   }
 }
 
+let rainAudioContext: AudioContext | null = null
+
+const startRainAmbience = () => {
+  if (typeof window === 'undefined') return () => undefined
+  const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextClass) return () => undefined
+  if (!rainAudioContext || rainAudioContext.state === 'closed') rainAudioContext = new AudioContextClass()
+  const context = rainAudioContext
+  const now = context.currentTime
+  const master = context.createGain()
+  master.gain.setValueAtTime(0.0001, now)
+  master.gain.linearRampToValueAtTime(0.34, now + 1.1)
+  master.connect(context.destination)
+
+  const makeNoise = (seconds: number, level: number, filterType: BiquadFilterType, frequency: number) => {
+    const source = context.createBufferSource()
+    const buffer = context.createBuffer(1, Math.floor(context.sampleRate * seconds), context.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let index = 0; index < data.length; index += 1) {
+      // Keep the loop continuously energized; fading both ends created a noticeable silent gap.
+      data[index] = Math.random() * 2 - 1
+    }
+    const crossfadeSamples = Math.min(Math.floor(context.sampleRate * 0.12), Math.floor(data.length / 4))
+    for (let index = 0; index < crossfadeSamples; index += 1) {
+      const progress = index / crossfadeSamples
+      const tailIndex = data.length - crossfadeSamples + index
+      data[tailIndex] = data[tailIndex] * (1 - progress) + data[index] * progress
+    }
+    source.buffer = buffer
+    source.loop = true
+    const filter = context.createBiquadFilter()
+    filter.type = filterType
+    filter.frequency.setValueAtTime(frequency, now)
+    filter.Q.setValueAtTime(filterType === 'bandpass' ? 0.55 : 0.35, now)
+    const gain = context.createGain()
+    gain.gain.setValueAtTime(level, now)
+    source.connect(filter).connect(gain).connect(master)
+    source.start(now)
+    return source
+  }
+
+  const rain = makeNoise(3.2, 0.42, 'bandpass', 2300)
+  const roofRumble = makeNoise(2.7, 0.2, 'lowpass', 760)
+  const activeDrops = new Set<AudioBufferSourceNode>()
+  let dropTimer: number | null = null
+  const playWindowDrop = () => {
+    const source = context.createBufferSource()
+    const buffer = context.createBuffer(1, Math.floor(context.sampleRate * 0.12), context.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let index = 0; index < data.length; index += 1) {
+      const progress = index / data.length
+      data[index] = (Math.random() * 2 - 1) * Math.pow(1 - progress, 2.6)
+    }
+    source.buffer = buffer
+    const filter = context.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(3600 + Math.random() * 2800, context.currentTime)
+    filter.Q.setValueAtTime(5.5, context.currentTime)
+    const gain = context.createGain()
+    const now = context.currentTime
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.13 + Math.random() * 0.1, now + 0.004)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11)
+    source.connect(filter).connect(gain).connect(master)
+    source.onended = () => activeDrops.delete(source)
+    activeDrops.add(source)
+    source.start(now)
+    source.stop(now + 0.13)
+  }
+  const scheduleDrop = () => {
+    dropTimer = window.setTimeout(() => {
+      playWindowDrop()
+      scheduleDrop()
+    }, 320 + Math.random() * 1450)
+  }
+  scheduleDrop()
+  const wake = () => {
+    if (context.state === 'suspended') void context.resume().catch(() => undefined)
+  }
+  window.addEventListener('pointerdown', wake, { once: true })
+  window.addEventListener('keydown', wake, { once: true })
+  wake()
+
+  return () => {
+    window.removeEventListener('pointerdown', wake)
+    window.removeEventListener('keydown', wake)
+    if (dropTimer !== null) window.clearTimeout(dropTimer)
+    activeDrops.forEach((source) => {
+      try { source.stop() } catch { /* source may have ended naturally */ }
+    })
+    activeDrops.clear()
+    const stopAt = context.currentTime + 0.24
+    master.gain.cancelScheduledValues(context.currentTime)
+    master.gain.setValueAtTime(Math.max(0.0001, master.gain.value), context.currentTime)
+    master.gain.exponentialRampToValueAtTime(0.0001, stopAt)
+    try { rain.stop(stopAt) } catch { /* already stopped during a route change */ }
+    try { roofRumble.stop(stopAt) } catch { /* already stopped during a route change */ }
+  }
+}
+
 const announce = (message: string) => {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('gothic:announce', { detail: message }))
@@ -1963,6 +2063,11 @@ export default function RainLibrary({
   useEffect(() => {
     if (fireEnabled !== undefined) setLocalFire(fireEnabled)
   }, [fireEnabled])
+
+  useEffect(() => {
+    if (!effectsEnabled || !rainActive) return undefined
+    return startRainAmbience()
+  }, [effectsEnabled, rainActive])
 
   useEffect(() => {
     if (portraitState.unlocked || !portraitState.lampActive || !allPortraitsSeen(portraitState.seenMask)) return undefined

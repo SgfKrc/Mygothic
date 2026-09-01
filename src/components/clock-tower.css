@@ -237,9 +237,11 @@
 .clocktower-keyboard {
   position: absolute;
   z-index: 9;
-  right: clamp(.65rem, 4vw, 4rem);
+  right: auto;
   bottom: clamp(1.2rem, 4.5vh, 3.2rem);
-  left: clamp(.65rem, 4vw, 4rem);
+  left: 50%;
+  width: min(60rem, calc(100% - 1.3rem));
+  transform: translateX(-50%);
   padding: .75rem .85rem .85rem;
   border: 1px solid rgba(137, 178, 169, .54);
   border-radius: 3px;
@@ -298,9 +300,20 @@
 
 .clocktower-keyboard__keys {
   display: grid;
-  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 3px;
+  height: clamp(8.6rem, 18vh, 11.5rem);
+}
+
+.clocktower-keyboard__row {
+  position: relative;
+  min-width: 0;
+}
+
+.clocktower-keyboard__whites {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
   gap: 2px;
-  height: clamp(4.6rem, 10vh, 6.5rem);
+  height: 100%;
 }
 
 .clocktower-key {
@@ -316,14 +329,25 @@
 .clocktower-key span {
   position: absolute;
   right: 0;
-  bottom: .25rem;
   left: 0;
   overflow: hidden;
-  color: rgba(62, 83, 78, .82);
-  font-size: .54rem;
   letter-spacing: 0;
   text-align: center;
   text-transform: uppercase;
+}
+
+.clocktower-key__qwerty {
+  top: .28rem;
+  color: #b18a59;
+  font-size: .54rem;
+  font-weight: 700;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .55);
+}
+
+.clocktower-key__note {
+  bottom: .25rem;
+  color: rgba(62, 83, 78, .82);
+  font-size: .54rem;
 }
 
 .clocktower-key.is-white {
@@ -332,16 +356,30 @@
 }
 
 .clocktower-key.is-black {
-  z-index: 1;
-  margin: 0 .16rem 1.3rem;
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  width: 5.3%;
+  height: 62%;
+  margin: 0;
+  transform: translateX(-50%);
   border-color: rgba(131, 193, 180, .62);
   background: linear-gradient(180deg, #25353a, #05080c 75%);
   box-shadow: inset 0 -8px 9px rgba(0, 0, 0, .7), 0 5px 8px rgba(0, 0, 0, .52);
 }
 
 .clocktower-key.is-black span {
+  font-size: .46rem;
+}
+
+.clocktower-key.is-black .clocktower-key__qwerty {
+  top: .18rem;
+  color: #d1a968;
+}
+
+.clocktower-key.is-black .clocktower-key__note {
+  bottom: .18rem;
   color: rgba(179, 214, 203, .7);
-  font-size: .48rem;
 }
 
 .clocktower-key:hover,
@@ -352,8 +390,54 @@
   transform: translateY(-2px);
 }
 
+.clocktower-key.is-black:hover,
+.clocktower-key.is-black:focus-visible {
+  transform: translate(-50%, -2px);
+}
+
 .clocktower-key:active {
   transform: translateY(2px);
+}
+
+.clocktower-key.is-black:active {
+  transform: translate(-50%, 2px);
+}
+
+.clocktower-keyboard__mix {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .8rem 1.25rem;
+  margin-top: .8rem;
+  padding-top: .7rem;
+  border-top: 1px solid rgba(137, 178, 169, .28);
+}
+
+.clocktower-mix {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 2.6rem;
+  align-items: center;
+  gap: .45rem;
+  min-width: 0;
+  color: rgba(211, 224, 216, .76);
+  font-size: .62rem;
+  letter-spacing: .08em;
+}
+
+.clocktower-mix__label {
+  white-space: nowrap;
+}
+
+.clocktower-mix input[type='range'] {
+  width: 100%;
+  min-width: 0;
+  accent-color: #b18a59;
+  cursor: pointer;
+}
+
+.clocktower-mix output {
+  color: #d1a968;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .clocktower-instruction {
@@ -427,7 +511,9 @@
     right: .5rem;
     bottom: .65rem;
     left: .5rem;
+    width: auto;
     padding: .6rem .55rem .65rem;
+    transform: none;
   }
 
   .clocktower-keyboard__header {
@@ -440,16 +526,40 @@
   }
 
   .clocktower-keyboard__keys {
-    height: 5.25rem;
+    height: 8.15rem;
     gap: 1px;
   }
 
-  .clocktower-key.is-black {
-    margin-inline: .08rem;
+  .clocktower-keyboard__row {
+    min-height: 0;
   }
 
-  .clocktower-key span {
-    display: none;
+  .clocktower-key.is-black {
+    width: 5.8%;
+    margin: 0;
+  }
+
+  .clocktower-keyboard__mix {
+    gap: .5rem;
+    margin-top: .55rem;
+    padding-top: .55rem;
+  }
+
+  .clocktower-mix {
+    grid-template-columns: 3.2rem minmax(0, 1fr) 2.2rem;
+    gap: .32rem;
+    font-size: .55rem;
+    letter-spacing: .03em;
+  }
+
+  .clocktower-key__qwerty {
+    top: .18rem;
+    font-size: .42rem;
+  }
+
+  .clocktower-key__note {
+    bottom: .15rem;
+    font-size: .4rem;
   }
 }
 

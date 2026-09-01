@@ -147,6 +147,126 @@ const drawPixelRelic = (ctx: CanvasRenderingContext2D, centerX: number, baseY: n
   ctx.restore()
 }
 
+const drawRelicCase = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, hue: number, t: number) => {
+  ctx.save()
+  ctx.shadowColor = 'rgba(0, 0, 0, .82)'
+  ctx.shadowBlur = width * .14
+  ctx.fillStyle = '#0a0c12'
+  ctx.strokeStyle = 'rgba(194, 159, 106, .58)'
+  ctx.lineWidth = Math.max(1.2, width * .018)
+  ctx.fillRect(x - width / 2, y - height, width, height)
+  ctx.strokeRect(x - width / 2, y - height, width, height)
+  ctx.shadowBlur = 0
+  const glow = ctx.createRadialGradient(x, y - height * .56, 0, x, y - height * .56, width * .7)
+  glow.addColorStop(0, `hsla(${hue} 64% 67% / ${.17 + Math.sin(t * 1.7 + hue) * .025})`)
+  glow.addColorStop(1, 'rgba(10, 11, 17, 0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(x - width * .46, y - height * .94, width * .92, height * .88)
+  ctx.fillStyle = '#17151d'
+  ctx.fillRect(x - width * .39, y - height * .79, width * .78, height * .56)
+  ctx.strokeStyle = 'rgba(137, 148, 150, .38)'
+  ctx.lineWidth = Math.max(1, width * .009)
+  ctx.strokeRect(x - width * .39, y - height * .79, width * .78, height * .56)
+  ctx.fillStyle = `hsla(${hue} 58% 65% / .8)`
+  ctx.beginPath()
+  ctx.arc(x, y - height * .5, width * .14, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = 'rgba(232, 207, 155, .55)'
+  ctx.fillRect(x - width * .025, y - height * .72, width * .05, height * .43)
+  ctx.fillRect(x - width * .2, y - height * .52, width * .4, Math.max(1, height * .035))
+  ctx.fillStyle = '#2a2025'
+  ctx.fillRect(x - width * .58, y - height * .06, width * 1.16, height * .08)
+  ctx.strokeStyle = 'rgba(215, 177, 116, .42)'
+  ctx.strokeRect(x - width * .58, y - height * .06, width * 1.16, height * .08)
+  ctx.restore()
+}
+
+const drawCandle = (ctx: CanvasRenderingContext2D, x: number, baseY: number, size: number, t: number) => {
+  const flicker = 1 + Math.sin(t * 5.4 + x) * .09
+  ctx.save()
+  ctx.fillStyle = '#3a2a29'
+  ctx.fillRect(x - size * .18, baseY - size * .72, size * .36, size * .72)
+  ctx.strokeStyle = 'rgba(217, 177, 119, .44)'
+  ctx.lineWidth = Math.max(1, size * .035)
+  ctx.strokeRect(x - size * .18, baseY - size * .72, size * .36, size * .72)
+  ctx.globalCompositeOperation = 'screen'
+  const glow = ctx.createRadialGradient(x, baseY - size * .95, 0, x, baseY - size * .95, size * 2.2)
+  glow.addColorStop(0, 'rgba(255, 227, 163, .4)')
+  glow.addColorStop(1, 'rgba(169, 91, 48, 0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(x - size * 2.2, baseY - size * 2.8, size * 4.4, size * 4.4)
+  ctx.fillStyle = '#ffeab0'
+  ctx.beginPath()
+  ctx.ellipse(x, baseY - size * .95, size * .12 * flicker, size * .28 * flicker, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+}
+
+const drawVaultDetails = (ctx: CanvasRenderingContext2D, width: number, height: number, t: number) => {
+  const sideScale = Math.max(0.72, Math.min(1.2, width / 1100))
+  const shelfY = height * .68
+  ctx.save()
+  ctx.strokeStyle = 'rgba(185, 149, 99, .46)'
+  ctx.lineWidth = Math.max(1, width * .0018)
+  for (const side of [-1, 1] as const) {
+    const x = side < 0 ? width * .16 : width * .84
+    const shelfWidth = width * .18
+    for (let shelf = 0; shelf < 3; shelf += 1) {
+      const y = shelfY - shelf * height * .12
+      ctx.fillStyle = '#17131a'
+      ctx.fillRect(x - shelfWidth / 2, y, shelfWidth, height * .025)
+      ctx.strokeRect(x - shelfWidth / 2, y, shelfWidth, height * .025)
+      for (let item = 0; item < 3; item += 1) {
+        const itemX = x - shelfWidth * .36 + item * shelfWidth * .36
+        const itemHeight = height * (.045 + ((item + shelf) % 2) * .02)
+        ctx.fillStyle = item % 2 ? '#423332' : '#2d2930'
+        ctx.fillRect(itemX, y - itemHeight, shelfWidth * .12, itemHeight)
+        ctx.strokeStyle = 'rgba(206, 172, 116, .38)'
+        ctx.strokeRect(itemX, y - itemHeight, shelfWidth * .12, itemHeight)
+      }
+    }
+    ctx.strokeStyle = 'rgba(130, 144, 147, .35)'
+    ctx.lineWidth = Math.max(1, width * .0012)
+    ctx.strokeRect(x - shelfWidth * .56, shelfY - height * .29, shelfWidth * 1.12, height * .33)
+  }
+
+  drawRelicCase(ctx, width * .16, height * .67, width * .12 * sideScale, height * .22 * sideScale, 344, t)
+  drawRelicCase(ctx, width * .84, height * .67, width * .12 * sideScale, height * .22 * sideScale, 44, t)
+  drawCandle(ctx, width * .28, height * .74, width * .025, t)
+  drawCandle(ctx, width * .72, height * .74, width * .025, t + 1.4)
+
+  // Suspended chains and a seal on the floor reinforce the vault's ritual function.
+  ctx.strokeStyle = 'rgba(178, 153, 119, .4)'
+  ctx.lineWidth = Math.max(1, width * .0013)
+  for (const chainX of [width * .39, width * .61]) {
+    ctx.beginPath()
+    ctx.moveTo(chainX, height * .1)
+    ctx.lineTo(chainX, height * .3)
+    ctx.stroke()
+    for (let link = 0; link < 7; link += 1) {
+      ctx.beginPath()
+      ctx.ellipse(chainX, height * (.12 + link * .026), width * .008, height * .012, link % 2 ? .35 : -.35, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+  }
+  const sealY = height * .9
+  ctx.strokeStyle = 'rgba(183, 137, 91, .38)'
+  ctx.lineWidth = Math.max(1, width * .0016)
+  ctx.beginPath()
+  ctx.arc(width * .5, sealY, width * .105, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.arc(width * .5, sealY, width * .075, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(width * .5, sealY - width * .07)
+  ctx.lineTo(width * .5, sealY + width * .07)
+  ctx.moveTo(width * .43, sealY)
+  ctx.lineTo(width * .57, sealY)
+  ctx.stroke()
+  ctx.restore()
+}
+
 const drawSaintRelicRoom = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, reducedMotion: boolean) => {
   const t = reducedMotion ? 0 : time / 1000
   const vpX = width * 0.5
@@ -263,6 +383,8 @@ const drawSaintRelicRoom = (ctx: CanvasRenderingContext2D, width: number, height
   ctx.stroke()
   ctx.fillStyle = `rgba(216, 172, 99, ${0.12 + Math.sin(t * 2.1) * .03})`
   ctx.fillRect(width * .34, height * .77, width * .32, height * .18)
+  drawVaultDetails(ctx, width, height, t)
+  drawRelicCase(ctx, vpX, height * .86, width * .25, height * .36, 316, t)
   drawPixelRelic(ctx, vpX, height * .84, width, t, reducedMotion)
 
   // Slow dust motes provide scale without flattening the architecture.

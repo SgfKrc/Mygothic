@@ -16,6 +16,8 @@ type GearSpec = {
   phase: number
   depth: number
   hue: number
+  /** Main plate engraving: each gear keeps the same tooth profile but has a distinct body. */
+  pattern?: 0 | 1 | 2 | 3
 }
 
 type PipeSpec = {
@@ -34,7 +36,14 @@ type DrawOptions = {
   gearPulseSeed: number
 }
 
+type ToneMix = {
+  organ: number
+  bell: number
+  chant: number
+}
+
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+const toneLevel = (value: number) => Math.max(0.0001, value)
 
 let sharedAudioContext: AudioContext | null = null
 
@@ -47,23 +56,72 @@ const getAudioContext = () => {
   return sharedAudioContext
 }
 
-const playBellSound = () => {
+const playBellSound = (mix: ToneMix) => {
   const context = getAudioContext()
   if (!context) return
   const now = context.currentTime
-  const gain = context.createGain()
-  gain.gain.setValueAtTime(0.0001, now)
-  gain.gain.exponentialRampToValueAtTime(0.16, now + 0.03)
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2)
-  gain.connect(context.destination)
-  for (const [frequency, detune] of [[132, -4], [198, 3], [264, 0]] as const) {
+  const master = context.createGain()
+  master.gain.setValueAtTime(0.0001, now)
+  master.gain.exponentialRampToValueAtTime(0.32, now + 0.045)
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 8.4)
+  master.connect(context.destination)
+
+  // A short feedback delay turns the partials into a long stone-room tail.
+  const delay = context.createDelay(1.2)
+  delay.delayTime.setValueAtTime(0.42, now)
+  const feedback = context.createGain()
+  feedback.gain.setValueAtTime(0.34, now)
+  const delayedLevel = context.createGain()
+  delayedLevel.gain.setValueAtTime(0.26, now)
+  delay.connect(feedback).connect(delay)
+  delay.connect(delayedLevel).connect(master)
+
+  const addTone = (type: OscillatorType, frequency: number, level: number, duration: number, detune = 0, withTail = true) => {
     const oscillator = context.createOscillator()
-    oscillator.type = 'sine'
+    const gain = context.createGain()
+    oscillator.type = type
     oscillator.frequency.setValueAtTime(frequency, now)
     oscillator.detune.setValueAtTime(detune, now)
+    gain.gain.setValueAtTime(toneLevel(level), now)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
     oscillator.connect(gain)
+    gain.connect(master)
+    if (withTail) gain.connect(delay)
     oscillator.start(now)
-    oscillator.stop(now + 2.3)
+    oscillator.stop(now + duration + 0.08)
+  }
+
+  // Low organ pipes give the strike weight; upper partials supply a bronze bell colour.
+  addTone('sawtooth', 66, 0.14 * mix.organ, 6.2, -7)
+  addTone('triangle', 99, 0.1 * mix.organ, 5.6, 4)
+  addTone('sine', 132, 0.26 * mix.bell, 7.2, -4)
+  addTone('sine', 198, 0.18 * mix.bell, 6.5, 3)
+  addTone('sine', 264, 0.12 * mix.bell, 5.8)
+  addTone('sine', 330, 0.075 * mix.bell, 4.8, 5)
+  addTone('sine', 396, 0.045 * mix.bell, 3.8, -3)
+
+  // Two detuned, vibrato-modulated voices evoke a distant church response.
+  for (const [frequency, detune] of [[66, -11], [99, 9]] as const) {
+    const chant = context.createOscillator()
+    const chantGain = context.createGain()
+    const vibrato = context.createOscillator()
+    const vibratoDepth = context.createGain()
+    chant.type = 'sine'
+    chant.frequency.setValueAtTime(frequency, now)
+    chant.detune.setValueAtTime(detune, now)
+    chantGain.gain.setValueAtTime(0.0001, now)
+    chantGain.gain.exponentialRampToValueAtTime(toneLevel(0.11 * mix.chant), now + 0.3)
+    chantGain.gain.exponentialRampToValueAtTime(0.0001, now + 6.8)
+    vibrato.frequency.setValueAtTime(4.6, now)
+    vibratoDepth.gain.setValueAtTime(7, now)
+    vibrato.connect(vibratoDepth).connect(chant.detune)
+    chant.connect(chantGain)
+    chantGain.connect(master)
+    chantGain.connect(delay)
+    chant.start(now)
+    vibrato.start(now)
+    chant.stop(now + 7.05)
+    vibrato.stop(now + 7.05)
   }
 }
 
@@ -101,7 +159,7 @@ const playGearTick = () => {
   filter.frequency.setValueAtTime(1180 + Math.random() * 520, now)
   filter.Q.setValueAtTime(7.5, now)
   output.gain.setValueAtTime(0.0001, now)
-  output.gain.exponentialRampToValueAtTime(0.035, now + 0.006)
+  output.gain.exponentialRampToValueAtTime(0.055, now + 0.006)
   output.gain.exponentialRampToValueAtTime(0.0001, now + 0.16)
   filter.connect(output).connect(context.destination)
   const oscillator = context.createOscillator()
@@ -112,14 +170,14 @@ const playGearTick = () => {
   oscillator.stop(now + 0.19)
 }
 
-const playKeyboardNote = (frequency: number) => {
+const playKeyboardNote = (frequency: number, mix: ToneMix) => {
   const context = getAudioContext()
   if (!context) return
   const now = context.currentTime
   const master = context.createGain()
   master.gain.setValueAtTime(0.0001, now)
-  master.gain.exponentialRampToValueAtTime(0.17, now + 0.018)
-  master.gain.exponentialRampToValueAtTime(0.0001, now + 2.4)
+  master.gain.exponentialRampToValueAtTime(0.22, now + 0.018)
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 5.8)
   master.connect(context.destination)
 
   const addTone = (type: OscillatorType, toneFrequency: number, level: number, duration: number, detune = 0) => {
@@ -128,7 +186,7 @@ const playKeyboardNote = (frequency: number) => {
     oscillator.type = type
     oscillator.frequency.setValueAtTime(toneFrequency, now)
     oscillator.detune.setValueAtTime(detune, now)
-    gain.gain.setValueAtTime(level, now)
+    gain.gain.setValueAtTime(toneLevel(level), now)
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
     oscillator.connect(gain).connect(master)
     oscillator.start(now)
@@ -136,11 +194,11 @@ const playKeyboardNote = (frequency: number) => {
   }
 
   // A playable note is a small gothic ensemble: pipe-organ body, bell partials and a choir-like fifth.
-  addTone('triangle', frequency, 0.42, 1.9)
-  addTone('sawtooth', frequency * 2, 0.08, 1.55, -5)
-  addTone('sine', frequency * 2.01, 0.14, 2.2)
-  addTone('sine', frequency * 3.01, 0.08, 1.7, 4)
-  addTone('sine', frequency * 1.5, 0.055, 1.45, -7)
+  addTone('triangle', frequency, 0.42 * mix.organ, 4.6)
+  addTone('sawtooth', frequency * 2, 0.09 * mix.organ, 4.1, -5)
+  addTone('sine', frequency * 2.01, 0.16 * mix.bell, 5.1)
+  addTone('sine', frequency * 3.01, 0.09 * mix.bell, 4.6, 4)
+  addTone('sine', frequency * 1.5, 0.065 * mix.bell, 4.2, -7)
 
   const chant = context.createOscillator()
   const chantGain = context.createGain()
@@ -150,16 +208,16 @@ const playKeyboardNote = (frequency: number) => {
   chant.frequency.setValueAtTime(frequency * 0.5, now)
   chant.detune.setValueAtTime(-9, now)
   chantGain.gain.setValueAtTime(0.0001, now)
-  chantGain.gain.exponentialRampToValueAtTime(0.07, now + 0.16)
-  chantGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.55)
+  chantGain.gain.exponentialRampToValueAtTime(toneLevel(0.095 * mix.chant), now + 0.22)
+  chantGain.gain.exponentialRampToValueAtTime(0.0001, now + 5.25)
   chantLfo.frequency.setValueAtTime(4.7, now)
   chantDepth.gain.setValueAtTime(8, now)
   chantLfo.connect(chantDepth).connect(chant.detune)
   chant.connect(chantGain).connect(master)
   chant.start(now)
   chantLfo.start(now)
-  chant.stop(now + 2.62)
-  chantLfo.stop(now + 2.62)
+  chant.stop(now + 5.35)
+  chantLfo.stop(now + 5.35)
 
   const noise = context.createBufferSource()
   const noiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * 0.24), context.sampleRate)
@@ -184,7 +242,7 @@ const startClocktowerAmbience = () => {
   const now = context.currentTime
   const master = context.createGain()
   master.gain.setValueAtTime(0.0001, now)
-  master.gain.linearRampToValueAtTime(0.038, now + 1.8)
+  master.gain.linearRampToValueAtTime(0.062, now + 1.8)
   master.connect(context.destination)
 
   const lowpass = context.createBiquadFilter()
@@ -235,10 +293,41 @@ const startClocktowerAmbience = () => {
   }
 }
 
-const CLOCKTOWER_NOTES = [
-  ['C4', 261.63, false], ['C#4', 277.18, true], ['D4', 293.66, false], ['D#4', 311.13, true], ['E4', 329.63, false], ['F4', 349.23, false], ['F#4', 369.99, true], ['G4', 392, false], ['G#4', 415.3, true], ['A4', 440, false], ['A#4', 466.16, true], ['B4', 493.88, false],
-  ['C5', 523.25, false], ['C#5', 554.37, true], ['D5', 587.33, false], ['D#5', 622.25, true], ['E5', 659.25, false], ['F5', 698.46, false], ['F#5', 739.99, true], ['G5', 783.99, false], ['G#5', 830.61, true], ['A5', 880, false], ['A#5', 932.33, true], ['B5', 987.77, false],
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
+const BLACK_SEMITONES = new Set([1, 3, 6, 8, 10])
+const CLOCKTOWER_NOTES = Array.from({ length: 48 }, (_, index) => {
+  const midi = 48 + index
+  const octave = Math.floor(midi / 12) - 1
+  const semitone = midi % 12
+  return [
+    `${NOTE_NAMES[semitone]}${octave}`,
+    440 * Math.pow(2, (midi - 69) / 12),
+    BLACK_SEMITONES.has(semitone),
+  ] as const
+})
+
+// 48 physical keys: number row, QWERTY rows, punctuation, and space.
+const QWERTY_KEYS = [
+  ['Backquote', '`'], ['Digit1', '1'], ['Digit2', '2'], ['Digit3', '3'], ['Digit4', '4'], ['Digit5', '5'], ['Digit6', '6'], ['Digit7', '7'], ['Digit8', '8'], ['Digit9', '9'], ['Digit0', '0'], ['Minus', '-'], ['Equal', '='],
+  ['KeyQ', 'Q'], ['KeyW', 'W'], ['KeyE', 'E'], ['KeyR', 'R'], ['KeyT', 'T'], ['KeyY', 'Y'], ['KeyU', 'U'], ['KeyI', 'I'], ['KeyO', 'O'], ['KeyP', 'P'], ['BracketLeft', '['], ['BracketRight', ']'],
+  ['KeyA', 'A'], ['KeyS', 'S'], ['KeyD', 'D'], ['KeyF', 'F'], ['KeyG', 'G'], ['KeyH', 'H'], ['KeyJ', 'J'], ['KeyK', 'K'], ['KeyL', 'L'], ['Semicolon', ';'], ['Quote', "'"],
+  ['KeyZ', 'Z'], ['KeyX', 'X'], ['KeyC', 'C'], ['KeyV', 'V'], ['KeyB', 'B'], ['KeyN', 'N'], ['KeyM', 'M'], ['Comma', ','], ['Period', '.'], ['Slash', '/'], ['Backslash', '\\'], ['Space', 'Space'],
 ] as const
+
+const WHITE_NOTE_OFFSETS = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23] as const
+const BLACK_NOTE_OFFSETS = [1, 3, 6, 8, 10, 13, 15, 18, 20, 22] as const
+const BLACK_KEY_LEFT: Record<number, string> = {
+  1: '7.1429%',
+  3: '14.2857%',
+  6: '28.5714%',
+  8: '35.7143%',
+  10: '42.8571%',
+  13: '57.1429%',
+  15: '64.2857%',
+  18: '78.5714%',
+  20: '85.7143%',
+  22: '92.8571%',
+}
 
 const drawGear = (ctx: CanvasRenderingContext2D, gear: GearSpec, t: number, crazyActive = false, spread = 0, centerX = 0, pulseAt = -1, pulseSeed = 0) => {
   ctx.save()
@@ -251,8 +340,10 @@ const drawGear = (ctx: CanvasRenderingContext2D, gear: GearSpec, t: number, craz
   const pulseJump = -pulseProgress * gear.radius * randomJump
   ctx.translate(gear.x + direction * spreadOffset + tremor, gear.y + pulseJump + (crazyActive ? Math.cos(t * 14 + gear.phase) * gear.radius * 0.012 : 0))
   ctx.rotate(gear.phase + t * gear.speed * (crazyActive ? 2.7 : 1))
+
   const toothInner = gear.radius * 0.84
   const toothOuter = gear.radius * 1.06
+  const pattern = gear.pattern ?? (Math.abs(Math.round(gear.phase * 10)) % 4) as 0 | 1 | 2 | 3
   const metal = ctx.createRadialGradient(-gear.radius * 0.2, -gear.radius * 0.24, gear.radius * 0.08, 0, 0, gear.radius * 1.12)
   metal.addColorStop(0, `hsla(${gear.hue} 20% 64% / ${0.6 + gear.depth * 0.25})`)
   metal.addColorStop(0.45, `hsla(${gear.hue} 20% 37% / ${0.66 + gear.depth * 0.2})`)
@@ -260,6 +351,8 @@ const drawGear = (ctx: CanvasRenderingContext2D, gear: GearSpec, t: number, craz
   ctx.fillStyle = metal
   ctx.strokeStyle = `hsla(${gear.hue} 26% 76% / ${0.34 + gear.depth * 0.34})`
   ctx.lineWidth = Math.max(1, gear.radius * 0.035)
+
+  // Every gear uses the same tooth profile. Gear identity comes from tooth count and plate engraving.
   ctx.beginPath()
   const steps = gear.teeth * 4
   for (let tooth = 0; tooth < steps; tooth += 1) {
@@ -274,27 +367,88 @@ const drawGear = (ctx: CanvasRenderingContext2D, gear: GearSpec, t: number, craz
   ctx.closePath()
   ctx.fill()
   ctx.stroke()
-  ctx.strokeStyle = `hsla(${gear.hue} 18% 76% / ${0.28 + gear.depth * 0.26})`
+
+  const edge = `hsla(${gear.hue} 18% 78% / ${0.28 + gear.depth * 0.26})`
+  ctx.strokeStyle = edge
   ctx.lineWidth = Math.max(1, gear.radius * 0.026)
   ctx.beginPath()
   ctx.arc(0, 0, gear.radius * 0.74, 0, Math.PI * 2)
   ctx.stroke()
+
+  // Four plate patterns: spokes, drilled holes, broad windows, and engraved spiral bands.
+  if (pattern === 0) {
+    ctx.lineWidth = Math.max(1, gear.radius * 0.038)
+    for (let spoke = 0; spoke < 8; spoke += 1) {
+      const angle = spoke / 8 * Math.PI * 2
+      ctx.beginPath()
+      ctx.moveTo(Math.cos(angle) * gear.radius * 0.2, Math.sin(angle) * gear.radius * 0.2)
+      ctx.lineTo(Math.cos(angle) * gear.radius * 0.69, Math.sin(angle) * gear.radius * 0.69)
+      ctx.stroke()
+    }
+  } else if (pattern === 1) {
+    const holes = 6
+    ctx.save()
+    ctx.globalCompositeOperation = 'destination-out'
+    for (let hole = 0; hole < holes; hole += 1) {
+      const angle = hole / holes * Math.PI * 2 + Math.PI / 6
+      ctx.beginPath()
+      ctx.arc(Math.cos(angle) * gear.radius * 0.49, Math.sin(angle) * gear.radius * 0.49, gear.radius * 0.105, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
+    ctx.strokeStyle = `hsla(${gear.hue} 20% 79% / ${0.42 + gear.depth * 0.2})`
+    ctx.lineWidth = Math.max(1, gear.radius * 0.018)
+    for (let hole = 0; hole < holes; hole += 1) {
+      const angle = hole / holes * Math.PI * 2 + Math.PI / 6
+      ctx.beginPath()
+      ctx.arc(Math.cos(angle) * gear.radius * 0.49, Math.sin(angle) * gear.radius * 0.49, gear.radius * 0.105, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+  } else if (pattern === 2) {
+    const windows = 6
+    ctx.fillStyle = `hsla(${gear.hue} 25% 14% / ${0.46 + gear.depth * 0.18})`
+    for (let window = 0; window < windows; window += 1) {
+      const angle = window / windows * Math.PI * 2
+      const spreadAngle = Math.PI / windows * 0.55
+      ctx.beginPath()
+      ctx.moveTo(Math.cos(angle - spreadAngle) * gear.radius * 0.29, Math.sin(angle - spreadAngle) * gear.radius * 0.29)
+      ctx.lineTo(Math.cos(angle - spreadAngle * 0.6) * gear.radius * 0.68, Math.sin(angle - spreadAngle * 0.6) * gear.radius * 0.68)
+      ctx.lineTo(Math.cos(angle + spreadAngle * 0.6) * gear.radius * 0.68, Math.sin(angle + spreadAngle * 0.6) * gear.radius * 0.68)
+      ctx.lineTo(Math.cos(angle + spreadAngle) * gear.radius * 0.29, Math.sin(angle + spreadAngle) * gear.radius * 0.29)
+      ctx.closePath()
+      ctx.fill()
+      ctx.strokeStyle = edge
+      ctx.lineWidth = Math.max(1, gear.radius * 0.014)
+      ctx.stroke()
+    }
+  } else {
+    ctx.strokeStyle = `hsla(${gear.hue} 24% 80% / ${0.32 + gear.depth * 0.25})`
+    ctx.lineWidth = Math.max(1, gear.radius * 0.02)
+    for (let ring = 0; ring < 3; ring += 1) {
+      ctx.beginPath()
+      ctx.arc(0, 0, gear.radius * (0.32 + ring * 0.14), ring % 2 ? 0.3 : -0.45, Math.PI * 1.55 + ring * 0.32)
+      ctx.stroke()
+    }
+    ctx.lineWidth = Math.max(1, gear.radius * 0.028)
+    for (let spoke = 0; spoke < 12; spoke += 1) {
+      const angle = spoke / 12 * Math.PI * 2
+      ctx.beginPath()
+      ctx.moveTo(Math.cos(angle) * gear.radius * 0.24, Math.sin(angle) * gear.radius * 0.24)
+      ctx.lineTo(Math.cos(angle + 0.08) * gear.radius * 0.65, Math.sin(angle + 0.08) * gear.radius * 0.65)
+      ctx.stroke()
+    }
+  }
+
+  ctx.fillStyle = `hsla(${gear.hue} 22% 17% / ${0.8 + gear.depth * 0.15})`
   ctx.beginPath()
   ctx.arc(0, 0, gear.radius * 0.2, 0, Math.PI * 2)
-  ctx.fillStyle = `hsla(${gear.hue} 22% 17% / ${0.8 + gear.depth * 0.15})`
   ctx.fill()
+  ctx.strokeStyle = edge
   ctx.stroke()
-  ctx.lineWidth = Math.max(1, gear.radius * 0.035)
-  for (let spoke = 0; spoke < 8; spoke += 1) {
-    const angle = spoke / 8 * Math.PI * 2
-    ctx.beginPath()
-    ctx.moveTo(Math.cos(angle) * gear.radius * 0.2, Math.sin(angle) * gear.radius * 0.2)
-    ctx.lineTo(Math.cos(angle) * gear.radius * 0.7, Math.sin(angle) * gear.radius * 0.7)
-    ctx.stroke()
-  }
-  for (let bolt = 0; bolt < 8; bolt += 1) {
-    const angle = bolt / 8 * Math.PI * 2 + Math.PI / 8
-    ctx.fillStyle = `hsla(${gear.hue} 26% 75% / ${0.3 + gear.depth * 0.2})`
+  const boltCount = pattern === 1 ? 6 : pattern === 3 ? 12 : 8
+  ctx.fillStyle = `hsla(${gear.hue} 26% 75% / ${0.3 + gear.depth * 0.2})`
+  for (let bolt = 0; bolt < boltCount; bolt += 1) {
+    const angle = bolt / boltCount * Math.PI * 2 + Math.PI / boltCount
     ctx.beginPath()
     ctx.arc(Math.cos(angle) * gear.radius * 0.59, Math.sin(angle) * gear.radius * 0.59, Math.max(1, gear.radius * 0.035), 0, Math.PI * 2)
     ctx.fill()
@@ -904,10 +1058,10 @@ const drawClockTower = (
   ctx.save()
   ctx.translate(cameraX * 0.36, 0)
   const farGears: GearSpec[] = [
-    { x: -width * 0.23, y: height * 0.31, radius: width * 0.105, teeth: 20, speed: 0.42, phase: 0.4, depth: 0.24, hue: 205 },
-    { x: width * 0.12, y: height * 0.34, radius: width * 0.07, teeth: 16, speed: -0.58, phase: 1.8, depth: 0.22, hue: 188 },
-    { x: width * 0.34, y: height * 0.23, radius: width * 0.12, teeth: 22, speed: 0.3, phase: 0.8, depth: 0.28, hue: 218 },
-    { x: width * 0.67, y: height * 0.32, radius: width * 0.085, teeth: 18, speed: -0.49, phase: 2.2, depth: 0.23, hue: 194 },
+    { x: -width * 0.23, y: height * 0.31, radius: width * 0.105, teeth: 20, speed: 0.42, phase: 0.4, depth: 0.24, hue: 205, pattern: 1 },
+    { x: width * 0.12, y: height * 0.34, radius: width * 0.07, teeth: 16, speed: -0.58, phase: 1.8, depth: 0.22, hue: 188, pattern: 2 },
+    { x: width * 0.34, y: height * 0.23, radius: width * 0.12, teeth: 22, speed: 0.3, phase: 0.8, depth: 0.28, hue: 218, pattern: 3 },
+    { x: width * 0.67, y: height * 0.32, radius: width * 0.085, teeth: 18, speed: -0.49, phase: 2.2, depth: 0.23, hue: 194, pattern: 0 },
     { x: width * 0.96, y: height * 0.24, radius: width * 0.14, teeth: 24, speed: 0.25, phase: 1.1, depth: 0.3, hue: 211 },
     { x: width * 1.31, y: height * 0.35, radius: width * 0.09, teeth: 18, speed: -0.38, phase: 2.4, depth: 0.22, hue: 188 },
     { x: width * 1.58, y: height * 0.22, radius: width * 0.12, teeth: 22, speed: 0.36, phase: 0.7, depth: 0.25, hue: 210 },
@@ -931,9 +1085,9 @@ const drawClockTower = (
   ]
   midPipes.forEach((pipe) => drawPipe(ctx, pipe))
   const midGears: GearSpec[] = [
-    { x: width * 0.02, y: height * 0.46, radius: width * 0.15, teeth: 24, speed: -0.3, phase: 0.5, depth: 0.56, hue: 29 },
-    { x: width * 0.3, y: height * 0.58, radius: width * 0.085, teeth: 18, speed: 0.72, phase: 2.1, depth: 0.5, hue: 39 },
-    { x: width * 0.56, y: height * 0.38, radius: width * 0.18, teeth: 28, speed: 0.2, phase: 1.6, depth: 0.58, hue: 27 },
+    { x: width * 0.02, y: height * 0.46, radius: width * 0.15, teeth: 24, speed: -0.3, phase: 0.5, depth: 0.56, hue: 29, pattern: 2 },
+    { x: width * 0.3, y: height * 0.58, radius: width * 0.085, teeth: 18, speed: 0.72, phase: 2.1, depth: 0.5, hue: 39, pattern: 3 },
+    { x: width * 0.56, y: height * 0.38, radius: width * 0.18, teeth: 28, speed: 0.2, phase: 1.6, depth: 0.58, hue: 27, pattern: 1 },
     { x: width * 0.91, y: height * 0.5, radius: width * 0.11, teeth: 20, speed: -0.62, phase: 0.8, depth: 0.52, hue: 42 },
     { x: width * 1.18, y: height * 0.35, radius: width * 0.16, teeth: 24, speed: 0.34, phase: 2.7, depth: 0.55, hue: 25 },
     { x: width * 1.49, y: height * 0.54, radius: width * 0.105, teeth: 18, speed: -0.54, phase: 1.1, depth: 0.48, hue: 37 },
@@ -952,9 +1106,9 @@ const drawClockTower = (
   ]
   nearPipes.forEach((pipe) => drawPipe(ctx, pipe))
   const nearGears: GearSpec[] = [
-    { x: -width * 0.12, y: height * 0.61, radius: width * 0.19, teeth: 28, speed: 0.17, phase: 2.2, depth: 0.9, hue: 35 },
-    { x: width * 0.26, y: height * 0.31, radius: width * 0.12, teeth: 22, speed: -0.54, phase: 0.4, depth: 0.86, hue: 26 },
-    { x: width * 0.53, y: height * 0.66, radius: width * 0.23, teeth: 32, speed: 0.13, phase: 1.5, depth: 0.92, hue: 40 },
+    { x: -width * 0.12, y: height * 0.61, radius: width * 0.19, teeth: 28, speed: 0.17, phase: 2.2, depth: 0.9, hue: 35, pattern: 3 },
+    { x: width * 0.26, y: height * 0.31, radius: width * 0.12, teeth: 22, speed: -0.54, phase: 0.4, depth: 0.86, hue: 26, pattern: 1 },
+    { x: width * 0.53, y: height * 0.66, radius: width * 0.23, teeth: 32, speed: 0.13, phase: 1.5, depth: 0.92, hue: 40, pattern: 2 },
     { x: width * 0.83, y: height * 0.29, radius: width * 0.14, teeth: 24, speed: -0.48, phase: 2.8, depth: 0.84, hue: 27 },
     { x: width * 1.11, y: height * 0.63, radius: width * 0.2, teeth: 30, speed: 0.2, phase: 0.2, depth: 0.9, hue: 34 },
     { x: width * 1.42, y: height * 0.3, radius: width * 0.12, teeth: 22, speed: -0.58, phase: 1.8, depth: 0.82, hue: 25 },
@@ -1049,6 +1203,7 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
   const [timezone, setTimezone] = useState<string | null>(null)
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const [gearPulse, setGearPulse] = useState(0)
+  const [toneMix, setToneMix] = useState<ToneMix>({ organ: 1, bell: 1, chant: 1 })
   const frameRef = useRef<number | null>(null)
   const cameraPosition = useRef(0)
   const bellPulseAt = useRef(0)
@@ -1174,8 +1329,8 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
   const ringBell = useCallback(() => {
     bellPulseAt.current = performance.now() / 1000
     setBellPulse((previous) => previous + 1)
-    if (effectsEnabled) playBellSound()
-  }, [effectsEnabled])
+    if (effectsEnabled) playBellSound(toneMix)
+  }, [effectsEnabled, toneMix])
   const ringTimezone = useCallback(() => {
     setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC')
     ringBell()
@@ -1193,8 +1348,26 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
     gearPulseAt.current = performance.now() / 1000
     gearPulseSeed.current = Math.random() * 1000
     setGearPulse((previous) => previous + 1)
-    if (effectsEnabled) playKeyboardNote(frequency)
-  }, [effectsEnabled])
+    if (effectsEnabled) playKeyboardNote(frequency, toneMix)
+  }, [effectsEnabled, toneMix])
+
+  const updateToneMix = useCallback((key: keyof ToneMix, value: string) => {
+    setToneMix((previous) => ({ ...previous, [key]: Number(value) / 100 }))
+  }, [])
+
+  useEffect(() => {
+    if (!keyboardOpen) return undefined
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || (event.target as HTMLElement | null)?.closest('button, input, textarea, select')) return
+      const noteIndex = QWERTY_KEYS.findIndex(([code]) => code === event.code)
+      if (noteIndex < 0) return
+      event.preventDefault()
+      const note = CLOCKTOWER_NOTES[noteIndex]
+      if (note) triggerKeyboardNote(note[1])
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [keyboardOpen, triggerKeyboardNote])
 
   return (
     <main className={`clocktower-scene ${crazyActive ? 'clocktower-scene--crazy' : ''} ${sen === 0 ? 'clocktower-scene--breach' : ''}`} data-scene="clocktower" data-lamps={lampsActive ? 'on' : 'off'} data-sen={sen} data-crazy={crazyActive ? 'on' : 'off'} data-relic={sen === 0 ? 'visible' : 'sealed'} data-bell-pulse={bellPulse} data-gear-pulse={gearPulse} data-timezone={timezone ?? ''} aria-labelledby="clocktower-title">
@@ -1275,27 +1448,66 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
           )}
         </nav>
         {keyboardOpen && (
-          <section id="clocktower-keyboard" className="clocktower-keyboard" aria-label="无间之钟，两组八度键盘">
+          <section id="clocktower-keyboard" className="clocktower-keyboard" aria-label="无间之钟，两排四个八度键盘">
             <div className="clocktower-keyboard__header">
               <span>无间之钟</span>
               <div className="clocktower-keyboard__actions">
-                <span className="clocktower-keyboard__range">C4 - B5</span>
+                <span className="clocktower-keyboard__range">QWERTY / C3 - B4 / C5 - B6</span>
                 <button type="button" className="clocktower-keyboard__close" aria-label="关闭无间之钟键盘" onClick={closeKeyboard}>
                   <X aria-hidden="true" />
                 </button>
               </div>
             </div>
             <div className="clocktower-keyboard__keys">
-              {CLOCKTOWER_NOTES.map(([name, frequency, black]) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={`clocktower-key ${black ? 'is-black' : 'is-white'}`}
-                  aria-label={`${name} 音符`}
-                  onClick={() => triggerKeyboardNote(frequency)}
-                >
-                  <span>{name.replace(/[0-9]/g, '')}</span>
-                </button>
+              {[0, 1].map((rowIndex) => {
+                const octaveStart = rowIndex * 24
+                const renderKey = (noteIndex: number, className: string, style?: CSSProperties) => {
+                  const [name, frequency] = CLOCKTOWER_NOTES[noteIndex]
+                  const [, qwerty] = QWERTY_KEYS[noteIndex]
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      className={`clocktower-key ${className}`}
+                      style={style}
+                      aria-keyshortcuts={qwerty}
+                      aria-label={`${name} 音符，键盘 ${qwerty}`}
+                      onClick={() => triggerKeyboardNote(frequency)}
+                    >
+                      <span className="clocktower-key__qwerty">{qwerty}</span>
+                      <span className="clocktower-key__note">{name}</span>
+                    </button>
+                  )
+                }
+                return (
+                  <div className="clocktower-keyboard__row" key={`row-${rowIndex}`}>
+                    <div className="clocktower-keyboard__whites">
+                      {WHITE_NOTE_OFFSETS.map((offset) => renderKey(octaveStart + offset, 'is-white'))}
+                    </div>
+                    {BLACK_NOTE_OFFSETS.map((offset) => renderKey(octaveStart + offset, 'is-black', { left: BLACK_KEY_LEFT[offset] }))}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="clocktower-keyboard__mix" aria-label="三种音色均衡">
+              {([
+                ['organ', '管风琴'],
+                ['bell', '钟声'],
+                ['chant', '圣咏'],
+              ] as const).map(([key, label]) => (
+                <label className="clocktower-mix" key={key}>
+                  <span className="clocktower-mix__label">{label}</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(toneMix[key] * 100)}
+                    aria-label={`${label}音量`}
+                    onChange={(event) => updateToneMix(key, event.target.value)}
+                  />
+                  <output>{Math.round(toneMix[key] * 100)}%</output>
+                </label>
               ))}
             </div>
           </section>

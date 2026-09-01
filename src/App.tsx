@@ -51,12 +51,12 @@ function playCue(cue: RainLibraryCue, enabled: boolean) {
   oscillator.frequency.setValueAtTime(frequency, now)
   oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.72, now + 0.42)
   gain.gain.setValueAtTime(0.0001, now)
-  gain.gain.exponentialRampToValueAtTime(cue === 'book' ? 0.035 : 0.06, now + 0.03)
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.52)
+  gain.gain.exponentialRampToValueAtTime(cue === 'book' ? 0.07 : 0.12, now + 0.03)
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.82)
   oscillator.connect(gain).connect(context.destination)
   oscillator.start(now)
-  oscillator.stop(now + 0.56)
-  window.setTimeout(() => void context.close(), 700)
+  oscillator.stop(now + 0.86)
+  window.setTimeout(() => void context.close(), 1100)
 }
 
 function UnavailableScene() {

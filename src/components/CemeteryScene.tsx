@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { BookOpen, Flame, Moon, Sparkles } from 'lucide-react'
+import { useEffect, useRef, type CSSProperties } from 'react'
+import { Bird, BookOpen, Flame, Moon, Snowflake, Sparkles } from 'lucide-react'
 import './cemetery.css'
 
 export type CemeterySceneProps = {
@@ -463,6 +463,72 @@ const drawSecondarySpire = (
   ctx.restore()
 }
 
+const drawCrowRookery = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  width: number,
+  height: number,
+) => {
+  const half = width / 2
+  const towerTop = baseY - height * .72
+  const roofTop = baseY - height
+  ctx.save()
+  ctx.fillStyle = 'rgba(12, 11, 17, .96)'
+  ctx.strokeStyle = 'rgba(143, 111, 117, .64)'
+  ctx.lineWidth = Math.max(1, width * .025)
+  ctx.beginPath()
+  ctx.moveTo(x - half * .76, baseY)
+  ctx.lineTo(x - half * .7, towerTop)
+  ctx.lineTo(x + half * .7, towerTop)
+  ctx.lineTo(x + half * .76, baseY)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+
+  // A perforated spire reserves a distinct vertical silhouette for the future crow gallery.
+  ctx.fillStyle = '#09090f'
+  ctx.beginPath()
+  ctx.moveTo(x - half * 1.02, towerTop + height * .02)
+  ctx.lineTo(x, roofTop)
+  ctx.lineTo(x + half * 1.02, towerTop + height * .02)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(192, 157, 121, .48)'
+  ctx.lineWidth = Math.max(.8, width * .014)
+  ctx.beginPath()
+  ctx.moveTo(x, roofTop)
+  ctx.lineTo(x, roofTop - height * .08)
+  ctx.moveTo(x - width * .06, roofTop - height * .05)
+  ctx.lineTo(x + width * .06, roofTop - height * .05)
+  ctx.stroke()
+
+  const tiers = 3
+  for (let tier = 0; tier < tiers; tier += 1) {
+    const y = towerTop + height * (.12 + tier * .17)
+    const openingWidth = width * (.38 - tier * .035)
+    const openingHeight = height * (.14 - tier * .012)
+    drawTowerWindow(ctx, x, y, openingWidth, openingHeight)
+    ctx.strokeStyle = 'rgba(178, 143, 116, .28)'
+    ctx.lineWidth = Math.max(.6, width * .01)
+    ctx.beginPath()
+    ctx.moveTo(x - half * .66, y + openingHeight * .92)
+    ctx.lineTo(x + half * .66, y + openingHeight * .92)
+    ctx.stroke()
+  }
+
+  ctx.fillStyle = 'rgba(179, 146, 111, .5)'
+  ctx.fillRect(x - width * .04, towerTop + height * .03, width * .08, height * .025)
+  ctx.strokeStyle = 'rgba(100, 77, 85, .58)'
+  ctx.lineWidth = Math.max(.7, width * .012)
+  ctx.beginPath()
+  ctx.moveTo(x - half * .82, baseY - height * .02)
+  ctx.lineTo(x + half * .82, baseY - height * .02)
+  ctx.stroke()
+  ctx.restore()
+}
+
 const drawFlyingButtress = (
   ctx: CanvasRenderingContext2D,
   side: number,
@@ -744,6 +810,12 @@ function drawCemetery(
   }
   ctx.restore()
 
+  // Left skyline reserve: a narrow rookery tower marks the future Crow Nest wing.
+  ctx.save()
+  ctx.translate(parallax(0.1), 0)
+  drawCrowRookery(ctx, width * .14, horizon + height * .085, width * .13, height * .31)
+  ctx.restore()
+
   // Central bell tower.
   const towerX = width * 0.48 + parallax(0.12)
   const towerWidth = Math.max(108, width * 0.115)
@@ -959,6 +1031,32 @@ function drawCemetery(
   ctx.fill()
   ctx.restore()
 
+  // A slim side path bends toward the reserved rookery space, leaving the central processional route clear.
+  ctx.save()
+  ctx.globalAlpha = .3
+  ctx.fillStyle = '#251a22'
+  ctx.strokeStyle = 'rgba(138, 105, 105, .2)'
+  ctx.lineWidth = Math.max(1, width * .001)
+  ctx.beginPath()
+  ctx.moveTo(width * .11 + parallax(.13), horizon + height * .02)
+  ctx.lineTo(width * .2 + parallax(.13), horizon + height * .02)
+  ctx.lineTo(width * .3 + parallax(.2), height)
+  ctx.lineTo(width * .04 + parallax(.2), height)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  for (let row = 0; row < 7; row += 1) {
+    const ratio = row / 7
+    const y = horizon + height * (.03 + ratio * .84)
+    const left = width * (.11 - ratio * .07) + parallax(.13 + ratio * .07)
+    const right = width * (.2 + ratio * .1) + parallax(.13 + ratio * .07)
+    ctx.beginPath()
+    ctx.moveTo(left, y)
+    ctx.lineTo(right, y)
+    ctx.stroke()
+  }
+  ctx.restore()
+
   drawGroundDetails(ctx, width, height, horizon, time)
 
   // Small distant graves establish multiple depth bands before the readable foreground stones.
@@ -1105,9 +1203,6 @@ function drawCemetery(
 export default function CemeteryScene({ reducedMotion = false }: CemeterySceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
-  const [notice, setNotice] = useState('')
-  const noticeTimer = useRef<number | undefined>(undefined)
-
   useEffect(() => {
     const canvas = canvasRef.current
     const stage = stageRef.current
@@ -1189,17 +1284,6 @@ export default function CemeteryScene({ reducedMotion = false }: CemeteryScenePr
     }
   }, [reducedMotion])
 
-  useEffect(() => () => {
-    if (noticeTimer.current) window.clearTimeout(noticeTimer.current)
-  }, [])
-
-  const showUnavailable = (label: string) => {
-    window.location.hash = '#/unavailable'
-    setNotice(`${label} 尚未开放。它仍在墓地深处等待自己的季节。`)
-    dispatchAnnouncement(`${label}尚未开放`)
-    noticeTimer.current = window.setTimeout(() => setNotice(''), 4200)
-  }
-
   const enterLibrary = () => {
     dispatchAnnouncement('正在进入图书馆之梦')
     window.location.hash = '#/library'
@@ -1208,6 +1292,21 @@ export default function CemeteryScene({ reducedMotion = false }: CemeteryScenePr
   const enterClockTower = () => {
     dispatchAnnouncement('正在进入钟楼回响')
     window.location.hash = '#/clocktower'
+  }
+
+  const enterRoseAsh = () => {
+    dispatchAnnouncement('正在进入玫瑰与灰烬')
+    window.location.hash = '#/rose-ash'
+  }
+
+  const enterOrbit = () => {
+    dispatchAnnouncement('正在进入哥特式星座盘')
+    window.location.hash = '#/gothic-orbit'
+  }
+
+  const enterWinterBell = () => {
+    dispatchAnnouncement('正在进入冬之钟')
+    window.location.hash = '#/winter-bell'
   }
 
   const hotspotStyle = (left: string, top: string): CSSProperties => ({ left, top })
@@ -1247,8 +1346,8 @@ export default function CemeteryScene({ reducedMotion = false }: CemeteryScenePr
             type="button"
             className="cemetery-hotspot cemetery-hotspot--rose"
             style={hotspotStyle('27%', '64%')}
-            onClick={() => showUnavailable('玫瑰与灰烬')}
-            aria-label="玫瑰与灰烬数字挽歌馆，尚未开放"
+            onClick={enterRoseAsh}
+            aria-label="进入玫瑰与灰烬数字挽歌馆"
           >
             <Flame aria-hidden="true" />
             <span>玫瑰与灰烬</span>
@@ -1265,13 +1364,33 @@ export default function CemeteryScene({ reducedMotion = false }: CemeteryScenePr
           </button>
           <button
             type="button"
+            className="cemetery-hotspot cemetery-hotspot--rookery"
+            style={hotspotStyle('15%', '54%')}
+            onClick={() => { window.location.hash = '#/rookery' }}
+            aria-label="进入鸦巢乌鸦信使展馆"
+          >
+            <Bird aria-hidden="true" />
+            <span>鸦巢</span>
+          </button>
+          <button
+            type="button"
             className="cemetery-hotspot cemetery-hotspot--orbit"
             style={hotspotStyle('82%', '32%')}
-            onClick={() => showUnavailable('哥特式星座盘')}
-            aria-label="哥特式星座盘，尚未开放"
+            onClick={enterOrbit}
+            aria-label="进入哥特式星座盘"
           >
             <Sparkles aria-hidden="true" />
             <span>哥特式星座盘</span>
+          </button>
+          <button
+            type="button"
+            className="cemetery-hotspot cemetery-hotspot--winter"
+            style={hotspotStyle('84%', '67%')}
+            onClick={enterWinterBell}
+            aria-label="进入冬之钟展馆"
+          >
+            <Snowflake aria-hidden="true" />
+            <span>冬之钟</span>
           </button>
         </nav>
 
@@ -1280,11 +1399,6 @@ export default function CemeteryScene({ reducedMotion = false }: CemeteryScenePr
           <span>雨水打湿了墓地的钟声</span>
         </div>
 
-        {notice && (
-          <div className="cemetery-notice" role="status" aria-live="polite">
-            {notice}
-          </div>
-        )}
       </div>
     </main>
   )

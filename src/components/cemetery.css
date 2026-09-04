@@ -179,6 +179,28 @@
   border-color: rgba(207, 166, 105, 0.65);
 }
 
+.cemetery-hotspot--rookery {
+  border-color: rgba(151, 174, 173, .64);
+  background: rgba(10, 16, 20, .72);
+}
+
+.cemetery-hotspot--rookery svg {
+  color: #a8c0b1;
+}
+
+.cemetery-hotspot--orbit {
+  border-color: rgba(193, 170, 114, .62);
+}
+
+.cemetery-hotspot--winter {
+  border-color: rgba(190, 213, 216, .62);
+  background: rgba(11, 20, 27, .74);
+}
+
+.cemetery-hotspot--winter svg {
+  color: #c2dce0;
+}
+
 .cemetery-hotspot--library::after {
   position: absolute;
   right: 0.6rem;
@@ -307,4 +329,3 @@
     animation: none;
   }
 }
-

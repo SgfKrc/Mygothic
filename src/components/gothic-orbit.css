@@ -1,0 +1,407 @@
+.gothic-orbit-scene {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #e7e0d3;
+  background: #07090d;
+}
+
+.gothic-orbit-stage {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.gothic-orbit-canvas {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.gothic-orbit-canvas:active {
+  cursor: grabbing;
+}
+
+.gothic-orbit-header {
+  position: absolute;
+  z-index: 2;
+  top: clamp(6.4rem, 13vh, 8.4rem);
+  left: clamp(1.2rem, 6vw, 6rem);
+  max-width: min(35rem, 48vw);
+  text-align: left;
+  pointer-events: none;
+}
+
+.gothic-orbit-kicker {
+  margin: 0 0 .55rem;
+  color: #c49a60;
+  font-size: .72rem;
+  letter-spacing: .28em;
+}
+
+.gothic-orbit-kicker span {
+  padding-inline: .4rem;
+  color: rgba(211, 194, 155, .46);
+}
+
+.gothic-orbit-header h1 {
+  margin: 0;
+  color: #ede5d7;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: clamp(2.35rem, 5.8vw, 5.7rem);
+  font-weight: 500;
+  line-height: .95;
+  letter-spacing: .04em;
+  text-shadow: 0 0 26px rgba(185, 155, 100, .18);
+}
+
+.gothic-orbit-subtitle {
+  margin: .85rem 0 0;
+  color: rgba(185, 200, 193, .64);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(.8rem, 1.2vw, 1rem);
+  letter-spacing: .32em;
+}
+
+.gothic-orbit-caption {
+  max-width: 24rem;
+  margin: 1.3rem 0 0;
+  color: rgba(218, 208, 193, .72);
+  font-size: .88rem;
+  line-height: 1.8;
+}
+
+.gothic-orbit-detail {
+  position: absolute;
+  z-index: 2;
+  top: 31%;
+  right: clamp(1.2rem, 5.5vw, 6rem);
+  width: min(21rem, 27vw);
+  padding: 1.15rem 1.2rem 1.2rem;
+  border: 1px solid rgba(186, 159, 105, .34);
+  border-left: 2px solid rgba(186, 159, 105, .74);
+  background: linear-gradient(145deg, rgba(12, 17, 22, .85), rgba(7, 10, 14, .6));
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .28), inset 0 0 30px rgba(178, 148, 92, .05);
+  text-align: left;
+}
+
+.gothic-orbit-detail::before,
+.gothic-orbit-detail::after {
+  position: absolute;
+  width: .6rem;
+  height: .6rem;
+  border-color: rgba(206, 177, 112, .74);
+  content: '';
+}
+
+.gothic-orbit-detail::before {
+  top: -.28rem;
+  left: -.28rem;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.gothic-orbit-detail::after {
+  right: -.28rem;
+  bottom: -.28rem;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.gothic-orbit-detail__eyebrow {
+  margin: 0 0 .6rem;
+  color: #c9a565;
+  font-size: .62rem;
+  letter-spacing: .2em;
+}
+
+.gothic-orbit-detail h2 {
+  margin: 0;
+  color: #f0e8d9;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+
+.gothic-orbit-detail__sample,
+.gothic-orbit-detail__reading {
+  margin: .85rem 0 0;
+  color: rgba(224, 215, 201, .82);
+  font-size: .8rem;
+  line-height: 1.85;
+}
+
+.gothic-orbit-detail__reading {
+  color: rgba(181, 196, 187, .7);
+  font-size: .74rem;
+}
+
+.gothic-orbit-detail__meter {
+  height: .25rem;
+  margin-top: 1.05rem;
+  overflow: hidden;
+  background: rgba(177, 190, 179, .16);
+}
+
+.gothic-orbit-detail__meter span {
+  display: block;
+  height: 100%;
+  box-shadow: 0 0 12px currentColor;
+  transition: width 260ms ease, background 260ms ease;
+}
+
+.gothic-orbit-detail small {
+  display: block;
+  margin-top: .45rem;
+  color: rgba(205, 194, 173, .55);
+  font-size: .62rem;
+  letter-spacing: .12em;
+}
+
+.gothic-orbit-console {
+  position: absolute;
+  z-index: 2;
+  bottom: clamp(4.8rem, 9vh, 7rem);
+  left: clamp(1.2rem, 6vw, 6rem);
+  width: min(19rem, 30vw);
+  padding: .9rem 1rem;
+  border-top: 1px solid rgba(184, 159, 108, .48);
+  border-bottom: 1px solid rgba(184, 159, 108, .22);
+  background: rgba(7, 11, 15, .48);
+  text-align: left;
+}
+
+.gothic-orbit-console__heading {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: #d3b372;
+  font-size: .66rem;
+  letter-spacing: .16em;
+}
+
+.gothic-orbit-console__heading svg {
+  width: .9rem;
+  height: .9rem;
+}
+
+.gothic-orbit-console__actions {
+  display: flex;
+  gap: .45rem;
+  margin-top: .7rem;
+}
+
+.gothic-orbit-console__actions button,
+.gothic-orbit-nav button,
+.gothic-orbit-stars button {
+  border: 1px solid rgba(185, 164, 121, .32);
+  color: rgba(224, 215, 199, .78);
+  background: rgba(15, 20, 25, .7);
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.gothic-orbit-console__actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.55rem;
+  height: 2.35rem;
+}
+
+.gothic-orbit-console__actions button:hover,
+.gothic-orbit-console__actions button:focus-visible,
+.gothic-orbit-nav button:hover,
+.gothic-orbit-nav button:focus-visible,
+.gothic-orbit-stars button:hover,
+.gothic-orbit-stars button:focus-visible,
+.gothic-orbit-stars button.is-selected {
+  border-color: rgba(216, 181, 109, .82);
+  color: #f0d59d;
+  background: rgba(103, 66, 40, .4);
+  outline: none;
+}
+
+.gothic-orbit-console__actions button:active,
+.gothic-orbit-nav button:active,
+.gothic-orbit-stars button:active {
+  transform: translateY(1px);
+}
+
+.gothic-orbit-console__actions svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.gothic-orbit-console p {
+  margin: .7rem 0 0;
+  color: rgba(188, 197, 188, .62);
+  font-size: .68rem;
+  line-height: 1.6;
+}
+
+.gothic-orbit-stars {
+  position: absolute;
+  z-index: 2;
+  right: clamp(1.2rem, 5.5vw, 6rem);
+  bottom: clamp(4.5rem, 8vh, 6.5rem);
+  width: min(21rem, 27vw);
+  padding-top: .7rem;
+  border-top: 1px solid rgba(183, 162, 115, .27);
+}
+
+.gothic-orbit-stars__title {
+  margin: 0 0 .5rem;
+  color: rgba(219, 193, 138, .72);
+  font-size: .62rem;
+  letter-spacing: .2em;
+}
+
+.gothic-orbit-stars__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .32rem;
+}
+
+.gothic-orbit-stars button {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: .35rem;
+  padding: .38rem .42rem;
+  font-size: .67rem;
+  letter-spacing: .04em;
+  text-align: left;
+}
+
+.gothic-orbit-stars button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gothic-orbit-stars button i {
+  flex: 0 0 auto;
+  width: .42rem;
+  height: .42rem;
+  border-radius: 50%;
+  box-shadow: 0 0 7px currentColor;
+}
+
+.gothic-orbit-nav {
+  position: absolute;
+  z-index: 3;
+  right: clamp(1.2rem, 5.5vw, 6rem);
+  bottom: 1.25rem;
+  display: flex;
+  gap: .55rem;
+}
+
+.gothic-orbit-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: .38rem;
+  min-height: 2.45rem;
+  padding: .45rem .7rem;
+  font-size: .69rem;
+  letter-spacing: .1em;
+}
+
+.gothic-orbit-nav svg {
+  width: .9rem;
+  height: .9rem;
+}
+
+@media (max-width: 900px) {
+  .gothic-orbit-header {
+    max-width: 42vw;
+  }
+
+  .gothic-orbit-detail,
+  .gothic-orbit-stars {
+    right: 1.2rem;
+    width: min(19rem, 31vw);
+  }
+
+  .gothic-orbit-stars__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .gothic-orbit-stage {
+    min-height: 920px;
+  }
+
+  .gothic-orbit-header {
+    top: 6.3rem;
+    left: 1.15rem;
+    max-width: calc(100% - 2.3rem);
+  }
+
+  .gothic-orbit-header h1 {
+    font-size: clamp(2.4rem, 12vw, 4.5rem);
+  }
+
+  .gothic-orbit-caption {
+    max-width: 18rem;
+    margin-top: .8rem;
+    font-size: .76rem;
+  }
+
+  .gothic-orbit-detail {
+    top: 67%;
+    right: 1.15rem;
+    left: 1.15rem;
+    width: auto;
+  }
+
+  .gothic-orbit-console {
+    right: 1.15rem;
+    bottom: 15.2rem;
+    left: 1.15rem;
+    width: auto;
+  }
+
+  .gothic-orbit-stars {
+    right: 1.15rem;
+    bottom: 6.1rem;
+    left: 1.15rem;
+    width: auto;
+  }
+
+  .gothic-orbit-stars__list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .gothic-orbit-stars button {
+    justify-content: center;
+  }
+
+  .gothic-orbit-stars button span {
+    display: none;
+  }
+
+  .gothic-orbit-nav {
+    right: 1.15rem;
+    bottom: 1.15rem;
+    left: 1.15rem;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 420px) {
+  .gothic-orbit-stage {
+    min-height: 950px;
+  }
+
+  .gothic-orbit-stars__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

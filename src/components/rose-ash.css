@@ -1,0 +1,431 @@
+.rose-ash-scene {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #eadfd8;
+  background: #100d14;
+}
+
+.rose-ash-stage {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.rose-ash-easter-caption {
+  position: absolute;
+  left: 50%;
+  top: 57%;
+  z-index: 5;
+  margin: 0;
+  transform: translateX(-50%);
+  color: #f6e5bf;
+  font-size: clamp(.78rem, 1.2vw, 1.05rem);
+  letter-spacing: .16em;
+  text-shadow: 0 0 18px rgba(255, 237, 178, .75), 0 1px 4px #09070c;
+  animation: rose-ash-caption-in 700ms ease both;
+  white-space: nowrap;
+}
+
+.rose-ash-prayer {
+  position: absolute;
+  left: 4.5%;
+  bottom: 8%;
+  z-index: 4;
+  margin: 0;
+  color: rgba(226, 200, 164, .78);
+  font-size: clamp(.72rem, 1vw, .92rem);
+  letter-spacing: .18em;
+  writing-mode: horizontal-tb;
+  align-items: center;
+  text-shadow: 0 0 9px rgba(192, 113, 88, .42);
+  pointer-events: none;
+  display: grid;
+  gap: .06em;
+  overflow: hidden;
+  max-height: 0;
+  animation: rose-ash-prayer-flow 7s linear infinite;
+}
+
+.rose-ash-prayer span {
+  display: block;
+  opacity: 0;
+  transform: translateY(-1.1em);
+  animation: rose-ash-prayer-letter 7s linear infinite;
+}
+
+.rose-ash-prayer span:nth-child(2) { animation-delay: .18s; }
+.rose-ash-prayer span:nth-child(3) { animation-delay: .36s; }
+.rose-ash-prayer span:nth-child(4) { animation-delay: .54s; }
+.rose-ash-prayer span:nth-child(5) { animation-delay: .72s; }
+.rose-ash-prayer span:nth-child(6) { animation-delay: .9s; }
+.rose-ash-prayer span:nth-child(7) { animation-delay: 1.08s; }
+
+@keyframes rose-ash-prayer-flow {
+  0%, 5% { max-height: 0; }
+  13%, 82% { max-height: 9em; }
+  92%, 100% { max-height: 0; }
+}
+
+@keyframes rose-ash-prayer-letter {
+  0%, 7% { opacity: 0; transform: translateY(-1.1em); }
+  18%, 72% { opacity: 1; transform: translateY(0); }
+  84%, 100% { opacity: 0; transform: translateY(1.1em); }
+}
+
+@keyframes rose-ash-caption-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+:root[data-motion='reduced'] .rose-ash-prayer,
+:root[data-motion='reduced'] .rose-ash-prayer span {
+  animation: none;
+  max-height: 9em;
+  opacity: .78;
+  transform: none;
+}
+
+.rose-ash-canvas {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rose-ash-stage::before,
+.rose-ash-stage::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+}
+
+.rose-ash-stage::before {
+  background: linear-gradient(90deg, rgba(8, 7, 11, .67), transparent 25%, transparent 75%, rgba(8, 7, 11, .68));
+}
+
+.rose-ash-stage::after {
+  background: radial-gradient(ellipse at 50% 48%, transparent 28%, rgba(5, 5, 8, .72) 100%);
+  mix-blend-mode: multiply;
+}
+
+.rose-ash-header {
+  position: absolute;
+  z-index: 2;
+  top: clamp(5.7rem, 12vh, 8.25rem);
+  left: clamp(1.25rem, 6vw, 7.5rem);
+  max-width: min(37rem, 82vw);
+  text-shadow: 0 3px 20px rgba(0, 0, 0, .88);
+  pointer-events: none;
+}
+
+.rose-ash-kicker {
+  margin: 0 0 .85rem;
+  color: #c59378;
+  font-size: .7rem;
+  letter-spacing: .26em;
+  line-height: 1.6;
+}
+
+.rose-ash-kicker span {
+  padding-inline: .35rem;
+  color: rgba(211, 165, 143, .56);
+}
+
+.rose-ash-header h1 {
+  margin: 0;
+  color: #f4e8df;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: clamp(2.8rem, 7vw, 7rem);
+  font-weight: 500;
+  letter-spacing: .1em;
+  line-height: .96;
+}
+
+.rose-ash-subtitle {
+  margin: 1rem 0 0;
+  color: rgba(224, 188, 175, .7);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(.65rem, 1.15vw, .9rem);
+  letter-spacing: .34em;
+}
+
+.rose-ash-caption {
+  max-width: 22rem;
+  margin: 1.3rem 0 0;
+  color: rgba(227, 205, 197, .72);
+  font-size: .83rem;
+  letter-spacing: .13em;
+  line-height: 1.85;
+}
+
+.rose-ash-form {
+  position: absolute;
+  z-index: 3;
+  right: clamp(1.25rem, 6vw, 7.5rem);
+  bottom: clamp(6.5rem, 10vh, 8.5rem);
+  width: min(25rem, calc(100% - 2.5rem));
+  padding: .78rem .85rem .68rem;
+  border: 1px solid rgba(167, 126, 111, .5);
+  border-radius: 3px;
+  background: rgba(19, 12, 18, .78);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .46);
+  backdrop-filter: blur(8px);
+}
+
+.rose-ash-form > label {
+  display: block;
+  margin-bottom: .48rem;
+  color: rgba(224, 183, 165, .86);
+  font-size: .64rem;
+  letter-spacing: .16em;
+}
+
+.rose-ash-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: .42rem;
+}
+
+.rose-ash-input-row input {
+  min-width: 0;
+  flex: 1;
+  min-height: 2.55rem;
+  padding: .42rem .58rem;
+  border: 1px solid rgba(166, 128, 117, .54);
+  border-radius: 2px;
+  color: #f1e6df;
+  background: rgba(9, 8, 12, .8);
+  font-size: .82rem;
+}
+
+.rose-ash-input-row input::placeholder {
+  color: rgba(212, 184, 175, .42);
+}
+
+.rose-ash-input-row input:focus-visible {
+  border-color: #d59a82;
+  outline: 2px solid rgba(213, 154, 130, .35);
+  outline-offset: 2px;
+}
+
+.rose-ash-submit {
+  display: grid;
+  width: 2.55rem;
+  min-height: 2.55rem;
+  flex: 0 0 2.55rem;
+  place-items: center;
+  border: 1px solid rgba(209, 145, 124, .7);
+  border-radius: 2px;
+  color: #f4d4c5;
+  background: rgba(102, 38, 50, .78);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.rose-ash-submit svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.rose-ash-submit:hover,
+.rose-ash-submit:focus-visible {
+  border-color: #edb097;
+  background: rgba(139, 49, 61, .92);
+  box-shadow: 0 0 20px rgba(170, 65, 68, .26);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.rose-ash-submit:disabled {
+  cursor: wait;
+  opacity: .62;
+}
+
+.rose-ash-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-top: .55rem;
+}
+
+.rose-ash-local-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  color: rgba(213, 191, 184, .68);
+  font-size: .63rem;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+
+.rose-ash-local-toggle input {
+  accent-color: #ad5e5e;
+}
+
+.rose-ash-local-toggle svg {
+  width: .78rem;
+  height: .78rem;
+  color: #ca8b74;
+}
+
+.rose-ash-count {
+  color: rgba(206, 173, 165, .48);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .74rem;
+  letter-spacing: .08em;
+}
+
+.rose-ash-state {
+  position: absolute;
+  z-index: 3;
+  top: 56%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  color: rgba(233, 194, 179, .82);
+  font-size: .68rem;
+  letter-spacing: .17em;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity 260ms ease;
+  pointer-events: none;
+}
+
+.rose-ash-state svg {
+  width: .9rem;
+  height: .9rem;
+}
+
+.rose-ash-state--germinating,
+.rose-ash-state--bloomed {
+  opacity: 1;
+}
+
+.rose-ash-state--germinating {
+  color: rgba(218, 169, 158, .72);
+}
+
+.rose-ash-memory {
+  position: absolute;
+  z-index: 3;
+  top: 66%;
+  left: 50%;
+  width: min(29rem, calc(100% - 2.5rem));
+  margin: 0;
+  color: rgba(230, 202, 194, .84);
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  letter-spacing: .08em;
+  line-height: 1.65;
+  text-align: center;
+  text-shadow: 0 3px 15px rgba(0, 0, 0, .85);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.rose-ash-back {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 3rem;
+  padding: .66rem .85rem;
+  border: 1px solid rgba(204, 151, 127, .64);
+  border-radius: 2px;
+  color: rgba(241, 226, 216, .9);
+  background: rgba(12, 9, 14, .84);
+  box-shadow: 0 0 0 1px rgba(2, 3, 7, .7), 0 9px 28px rgba(0, 0, 0, .45);
+  cursor: pointer;
+  font-size: .72rem;
+  letter-spacing: .14em;
+  transform: translateX(-50%);
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.rose-ash-back svg {
+  width: 1rem;
+  height: 1rem;
+  color: #d69a7a;
+}
+
+.rose-ash-back:hover,
+.rose-ash-back:focus-visible {
+  border-color: #efb18f;
+  color: #fff0e6;
+  background: rgba(54, 25, 30, .92);
+  box-shadow: 0 0 22px rgba(184, 89, 74, .23), 0 10px 30px rgba(0, 0, 0, .55);
+  outline: none;
+  transform: translateX(-50%) translateY(-3px);
+}
+
+@media (max-width: 720px) {
+  .rose-ash-header {
+    top: 6rem;
+    left: 1.1rem;
+    max-width: calc(100% - 2.2rem);
+  }
+
+  .rose-ash-header h1 {
+    font-size: clamp(2.45rem, 12vw, 4.6rem);
+  }
+
+  .rose-ash-subtitle {
+    letter-spacing: .2em;
+  }
+
+  .rose-ash-caption {
+    max-width: 15rem;
+    margin-top: .95rem;
+    font-size: .73rem;
+  }
+
+  .rose-ash-form {
+    right: .75rem;
+    bottom: 7.4rem;
+    left: 3.2rem;
+    width: auto;
+  }
+
+  .rose-ash-state {
+    top: 57%;
+  }
+
+  .rose-ash-prayer {
+    left: 1.05rem;
+    bottom: 9%;
+    font-size: .72rem;
+  }
+
+  .rose-ash-memory {
+    top: 65%;
+  }
+
+  .rose-ash-back {
+    width: 2.85rem;
+    min-height: 2.85rem;
+    padding: .68rem;
+    border-radius: 50%;
+    justify-content: center;
+  }
+
+  .rose-ash-back span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

@@ -1,0 +1,228 @@
+.winter-bell-scene {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #e7e9e2;
+  background: #111b27;
+}
+
+.winter-bell-stage {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.winter-bell-canvas {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.winter-bell-header {
+  position: absolute;
+  z-index: 2;
+  top: clamp(6.4rem, 13vh, 8.4rem);
+  left: clamp(1.2rem, 6vw, 6rem);
+  max-width: min(34rem, 45vw);
+  text-align: left;
+  pointer-events: none;
+  transform: translate(calc(var(--winter-parallax-x, 0) * -0.3rem), calc(var(--winter-parallax-y, 0) * -0.2rem));
+}
+
+.winter-bell-kicker {
+  margin: 0 0 .55rem;
+  color: #b9c6c5;
+  font-size: .72rem;
+  letter-spacing: .28em;
+}
+
+.winter-bell-kicker span {
+  padding-inline: .4rem;
+  color: rgba(203, 214, 207, .44);
+}
+
+.winter-bell-header h1 {
+  margin: 0;
+  color: #f0eee4;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: clamp(2.8rem, 6.7vw, 6.5rem);
+  font-weight: 500;
+  line-height: .9;
+  letter-spacing: .08em;
+  text-shadow: 0 0 28px rgba(196, 218, 224, .18);
+}
+
+.winter-bell-subtitle {
+  margin: .9rem 0 0;
+  color: rgba(191, 211, 213, .68);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(.8rem, 1.3vw, 1rem);
+  letter-spacing: .34em;
+}
+
+.winter-bell-caption {
+  max-width: 21rem;
+  margin: 1.4rem 0 0;
+  color: rgba(225, 231, 222, .76);
+  font-size: .88rem;
+  line-height: 1.85;
+}
+
+.winter-bell-console {
+  position: absolute;
+  z-index: 2;
+  bottom: clamp(4.6rem, 9vh, 6.5rem);
+  left: clamp(1.2rem, 6vw, 6rem);
+  width: min(19rem, 28vw);
+  padding: .9rem 1rem 1rem;
+  border-top: 1px solid rgba(204, 214, 205, .42);
+  border-bottom: 1px solid rgba(204, 214, 205, .2);
+  background: rgba(12, 21, 30, .46);
+  text-align: left;
+}
+
+.winter-bell-console__label {
+  display: flex;
+  align-items: center;
+  gap: .48rem;
+  color: #d7dfd8;
+  font-size: .68rem;
+  letter-spacing: .18em;
+}
+
+.winter-bell-console__label svg {
+  width: .95rem;
+  height: .95rem;
+  color: #c5d7d2;
+}
+
+.winter-bell-console p {
+  margin: .65rem 0 .8rem;
+  color: rgba(221, 229, 223, .62);
+  font-size: .7rem;
+  line-height: 1.7;
+}
+
+.winter-bell-console button,
+.winter-bell-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  min-height: 2.5rem;
+  padding: .46rem .72rem;
+  border: 1px solid rgba(213, 193, 141, .45);
+  color: #efe6d3;
+  background: rgba(77, 59, 38, .5);
+  cursor: pointer;
+  font-size: .7rem;
+  letter-spacing: .11em;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.winter-bell-console button:hover,
+.winter-bell-console button:focus-visible,
+.winter-bell-nav button:hover,
+.winter-bell-nav button:focus-visible {
+  border-color: #e0c47f;
+  color: #fff5de;
+  background: rgba(115, 78, 43, .7);
+  outline: none;
+}
+
+.winter-bell-console button:active,
+.winter-bell-nav button:active {
+  transform: translateY(1px);
+}
+
+.winter-bell-console svg,
+.winter-bell-nav svg {
+  width: .95rem;
+  height: .95rem;
+}
+
+.winter-bell-badge {
+  position: absolute;
+  z-index: 2;
+  top: 54%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  color: rgba(227, 235, 226, .68);
+  font-size: .68rem;
+  letter-spacing: .18em;
+  pointer-events: none;
+  transform: translate(-50%, 12rem);
+}
+
+.winter-bell-badge svg {
+  width: .85rem;
+  height: .85rem;
+  color: #d7c184;
+}
+
+.winter-bell-nav {
+  position: absolute;
+  z-index: 3;
+  right: clamp(1.2rem, 5.5vw, 6rem);
+  bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .winter-bell-header {
+    max-width: 42vw;
+  }
+
+  .winter-bell-console {
+    width: min(18rem, 32vw);
+  }
+}
+
+@media (max-width: 720px) {
+  .winter-bell-stage {
+    min-height: 900px;
+  }
+
+  .winter-bell-header {
+    top: 6.3rem;
+    left: 1.15rem;
+    max-width: calc(100% - 2.3rem);
+  }
+
+  .winter-bell-header h1 {
+    font-size: clamp(2.8rem, 14vw, 5rem);
+  }
+
+  .winter-bell-caption {
+    max-width: 17rem;
+    margin-top: .8rem;
+    font-size: .76rem;
+  }
+
+  .winter-bell-console {
+    right: 1.15rem;
+    bottom: 6rem;
+    left: 1.15rem;
+    width: auto;
+  }
+
+  .winter-bell-badge {
+    top: 54%;
+    transform: translate(-50%, 10rem);
+  }
+
+  .winter-bell-nav {
+    right: 1.15rem;
+    bottom: 1.15rem;
+    left: 1.15rem;
+  }
+
+  .winter-bell-nav button {
+    width: 100%;
+    justify-content: center;
+  }
+}

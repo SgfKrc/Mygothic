@@ -1,0 +1,385 @@
+.bone-garden-scene {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #e7dfd0;
+  background: #08090c;
+}
+
+.bone-garden-stage {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  background: #08090c;
+}
+
+.bone-garden-stage--dragging {
+  cursor: grabbing;
+}
+
+.bone-garden-canvas {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.bone-garden-stage::before,
+.bone-garden-stage::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  content: '';
+  pointer-events: none;
+}
+
+.bone-garden-stage::before {
+  background: linear-gradient(90deg, rgba(4, 5, 9, .8), transparent 25%, transparent 75%, rgba(4, 5, 9, .78));
+}
+
+.bone-garden-stage::after {
+  background: radial-gradient(ellipse at 50% 58%, transparent 32%, rgba(3, 4, 7, .72) 100%);
+  mix-blend-mode: multiply;
+}
+
+.bone-garden-header {
+  position: absolute;
+  z-index: 2;
+  top: clamp(5.7rem, 12vh, 8.25rem);
+  left: clamp(1.25rem, 6vw, 7.5rem);
+  max-width: min(35rem, 78vw);
+  pointer-events: none;
+  text-shadow: 0 3px 20px rgba(0, 0, 0, .9);
+}
+
+.bone-garden-kicker {
+  margin: 0 0 .85rem;
+  color: #bd9869;
+  font-size: .7rem;
+  letter-spacing: .26em;
+  line-height: 1.6;
+}
+
+.bone-garden-kicker span {
+  padding-inline: .35rem;
+  color: rgba(213, 180, 131, .55);
+}
+
+.bone-garden-header h1 {
+  margin: 0;
+  color: #f0e7d7;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: clamp(2.8rem, 7vw, 7rem);
+  font-weight: 500;
+  letter-spacing: .11em;
+  line-height: .96;
+}
+
+.bone-garden-subtitle {
+  margin: 1rem 0 0;
+  color: rgba(221, 196, 171, .68);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(.65rem, 1.15vw, .9rem);
+  letter-spacing: .31em;
+}
+
+.bone-garden-controls {
+  position: absolute;
+  z-index: 3;
+  top: clamp(6.4rem, 13vh, 9rem);
+  right: clamp(1.25rem, 6vw, 7.5rem);
+  display: flex;
+  align-items: end;
+  gap: .45rem;
+  padding: .55rem;
+  border: 1px solid rgba(139, 147, 139, .42);
+  border-radius: 3px;
+  background: rgba(6, 9, 13, .8);
+  box-shadow: 0 9px 28px rgba(0, 0, 0, .46);
+  backdrop-filter: blur(7px);
+}
+
+.bone-garden-seed-field {
+  display: grid;
+  gap: .22rem;
+}
+
+.bone-garden-seed-field label {
+  color: rgba(216, 187, 133, .72);
+  font-size: .58rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.bone-garden-seed-field input {
+  width: 7.25rem;
+  min-height: 2.35rem;
+  padding: .35rem .48rem;
+  border: 1px solid rgba(181, 151, 105, .5);
+  border-radius: 2px;
+  color: #eee4d2;
+  background: rgba(13, 17, 20, .92);
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: .86rem;
+  letter-spacing: .08em;
+}
+
+.bone-garden-seed-field input:focus-visible {
+  border-color: #e0b775;
+  outline: 2px solid rgba(224, 183, 117, .45);
+  outline-offset: 2px;
+}
+
+.bone-garden-action,
+.bone-garden-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 2.35rem;
+  padding: .45rem .58rem;
+  border: 1px solid rgba(201, 169, 109, .55);
+  border-radius: 2px;
+  color: rgba(241, 228, 208, .9);
+  background: rgba(38, 27, 25, .78);
+  cursor: pointer;
+  font-size: .64rem;
+  letter-spacing: .1em;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.bone-garden-action svg,
+.bone-garden-link svg {
+  width: .9rem;
+  height: .9rem;
+  color: #d9ac66;
+}
+
+.bone-garden-action:hover,
+.bone-garden-action:focus-visible,
+.bone-garden-link:hover,
+.bone-garden-link:focus-visible {
+  border-color: #edc77f;
+  color: #fff4e5;
+  background: rgba(67, 42, 31, .92);
+  box-shadow: 0 0 18px rgba(211, 160, 86, .2);
+  outline: none;
+  transform: translateY(-2px);
+}
+
+.bone-garden-action--quiet {
+  border-color: rgba(125, 161, 151, .5);
+  color: rgba(220, 235, 226, .84);
+  background: rgba(9, 25, 28, .8);
+}
+
+.bone-garden-action--quiet svg {
+  color: #9fc9b7;
+}
+
+.bone-garden-action--orbit {
+  border-color: rgba(151, 166, 192, .54);
+  color: rgba(222, 228, 242, .84);
+  background: rgba(15, 20, 32, .8);
+}
+
+.bone-garden-action--orbit svg {
+  color: #a9bbdf;
+}
+
+.bone-garden-action--orbit.bone-garden-action--active {
+  border-color: rgba(190, 207, 241, .86);
+  color: #f0f4ff;
+  background: rgba(34, 43, 70, .92);
+  box-shadow: 0 0 20px rgba(126, 157, 224, .22);
+}
+
+.bone-garden-action--active svg {
+  animation: bone-garden-orbit 1.8s linear infinite;
+}
+
+.bone-garden-action--resonate {
+  border-color: rgba(210, 170, 112, .68);
+  color: rgba(247, 225, 188, .92);
+  background: rgba(48, 29, 29, .82);
+}
+
+.bone-garden-action--resonate svg {
+  color: #edc175;
+}
+
+.bone-garden-status {
+  position: absolute;
+  z-index: 2;
+  bottom: clamp(5.7rem, 10vh, 7.5rem);
+  left: clamp(1.25rem, 6vw, 7.5rem);
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: rgba(215, 209, 191, .62);
+  font-size: .66rem;
+  letter-spacing: .18em;
+  text-shadow: 0 2px 10px #000;
+}
+
+.bone-garden-status__mark {
+  width: .44rem;
+  height: .44rem;
+  border: 1px solid rgba(219, 177, 103, .78);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(222, 174, 87, .28);
+}
+
+.bone-garden-status--growing .bone-garden-status__mark {
+  background: #d5ad69;
+  animation: bone-garden-pulse 900ms ease-in-out infinite alternate;
+}
+
+.bone-garden-gesture {
+  position: absolute;
+  z-index: 2;
+  right: clamp(1.25rem, 6vw, 7.5rem);
+  bottom: clamp(5.7rem, 10vh, 7.5rem);
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  color: rgba(205, 214, 202, .53);
+  font-size: .62rem;
+  letter-spacing: .14em;
+  pointer-events: none;
+  text-shadow: 0 2px 10px #000;
+}
+
+.bone-garden-gesture svg {
+  width: 1rem;
+  height: 1rem;
+  color: rgba(189, 205, 187, .72);
+}
+
+.bone-garden-nav {
+  position: absolute;
+  z-index: 3;
+  bottom: 1.35rem;
+  left: 50%;
+  display: flex;
+  gap: .55rem;
+  transform: translateX(-50%);
+}
+
+.bone-garden-link {
+  min-height: 3rem;
+  padding: .66rem .85rem;
+  border-color: rgba(204, 166, 103, .62);
+  background: rgba(8, 10, 15, .84);
+  box-shadow: 0 0 0 1px rgba(2, 3, 7, .7), 0 9px 28px rgba(0, 0, 0, .45);
+  font-size: .7rem;
+  letter-spacing: .14em;
+}
+
+.bone-garden-link--relic {
+  border-color: rgba(160, 188, 166, .64);
+  background: rgba(9, 21, 21, .86);
+}
+
+.bone-garden-link--relic svg {
+  color: #a9c9af;
+}
+
+@keyframes bone-garden-pulse {
+  from { opacity: .45; transform: scale(.78); }
+  to { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes bone-garden-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+:root[data-motion='reduced'] .bone-garden-status--growing .bone-garden-status__mark {
+  animation: none;
+}
+
+:root[data-motion='reduced'] .bone-garden-action--active svg {
+  animation: none;
+}
+
+@media (max-width: 720px) {
+  .bone-garden-header {
+    top: 6rem;
+    left: 1.1rem;
+    max-width: calc(100% - 2.2rem);
+  }
+
+  .bone-garden-header h1 {
+    font-size: clamp(2.45rem, 12vw, 4.6rem);
+  }
+
+  .bone-garden-subtitle {
+    letter-spacing: .18em;
+  }
+
+  .bone-garden-controls {
+    top: 14.2rem;
+    right: .75rem;
+    left: .75rem;
+    align-items: stretch;
+    gap: .35rem;
+    padding: .45rem;
+  }
+
+  .bone-garden-seed-field {
+    flex: 1 1 7rem;
+  }
+
+  .bone-garden-seed-field input {
+    width: 100%;
+  }
+
+  .bone-garden-action {
+    flex: 0 1 auto;
+    min-width: 2.65rem;
+    padding-inline: .52rem;
+  }
+
+  .bone-garden-action span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .bone-garden-status {
+    bottom: 6.35rem;
+    left: 1rem;
+  }
+
+  .bone-garden-gesture {
+    right: 1rem;
+    bottom: 6.35rem;
+  }
+
+  .bone-garden-nav {
+    right: .75rem;
+    bottom: 1rem;
+    left: .75rem;
+    justify-content: center;
+    transform: none;
+  }
+
+  .bone-garden-link {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: .55rem;
+    font-size: .62rem;
+  }
+}

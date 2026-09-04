@@ -2,8 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Accessibility, ArrowLeft, VolumeX, Waves } from 'lucide-react'
 import CemeteryScene from './components/CemeteryScene'
 import ClockTowerScene from './components/ClockTowerScene'
+import BoneGardenScene from './components/BoneGardenScene'
 import RainLibrary, { type RainLibraryCue } from './components/RainLibrary'
+import RookeryScene from './components/RookeryScene'
+import RoseAshScene from './components/RoseAshScene'
 import SaintRelicScene from './components/SaintRelicScene'
+import GothicOrbitScene from './components/GothicOrbitScene'
+import WinterBellScene from './components/WinterBellScene'
 import { SCENE_ROUTES, type AudioState, type SceneId } from './types'
 
 const getSceneFromHash = (): SceneId => {
@@ -11,6 +16,11 @@ const getSceneFromHash = (): SceneId => {
   if (route === 'library') return 'library'
   if (route === 'clocktower') return 'clocktower'
   if (route === 'saint-relic') return 'saint-relic'
+  if (route === 'bone-garden') return 'bone-garden'
+  if (route === 'rookery') return 'rookery'
+  if (route === 'rose-ash') return 'rose-ash'
+  if (route === 'gothic-orbit') return 'gothic-orbit'
+  if (route === 'winter-bell') return 'winter-bell'
   if (route === 'unavailable') return 'unavailable'
   return 'cemetery'
 }
@@ -72,19 +82,45 @@ function UnavailableScene() {
   )
 }
 
+function SceneTransition({ visible }: { visible: boolean }) {
+  if (!visible) return null
+  return (
+    <div className="scene-transition" role="status" aria-live="polite" aria-label="少女祈祷中">
+      <div className="scene-transition__flower" aria-hidden="true">
+        {Array.from({ length: 10 }, (_, index) => <span className="scene-transition__petal" key={`petal-${index}`} />)}
+        <span className="scene-transition__flower-core" />
+        <span className="scene-transition__stem" />
+      </div>
+      <p className="scene-transition__prayer">
+        {Array.from('少女祈祷中……').map((character, index) => <span key={`${character}-${index}`}>{character}</span>)}
+      </p>
+    </div>
+  )
+}
+
 export default function App() {
   const [scene, setScene] = useState<SceneId>(() => getSceneFromHash())
   const [audio, setAudio] = useState<AudioState>({ bgmEnabled: false, effectsEnabled: true })
   const [reducedMotion, setReducedMotion] = useState(false)
   const [announcement, setAnnouncement] = useState('')
+  const [transitioning, setTransitioning] = useState(false)
   const audioRef = useRef(audio)
+  const transitionTimerRef = useRef<number | undefined>(undefined)
 
   useEffect(() => { audioRef.current = audio }, [audio])
 
   useEffect(() => {
-    const onHashChange = () => setScene(getSceneFromHash())
+    const onHashChange = () => {
+      setScene(getSceneFromHash())
+      setTransitioning(true)
+      if (transitionTimerRef.current) window.clearTimeout(transitionTimerRef.current)
+      transitionTimerRef.current = window.setTimeout(() => setTransitioning(false), 1650)
+    }
     window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+      if (transitionTimerRef.current) window.clearTimeout(transitionTimerRef.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -121,6 +157,11 @@ export default function App() {
       {scene === 'library' && <RainLibrary reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} onAmbientCue={onAmbientCue} />}
       {scene === 'clocktower' && <ClockTowerScene reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} />}
       {scene === 'saint-relic' && <SaintRelicScene reducedMotion={reducedMotion} />}
+      {scene === 'bone-garden' && <BoneGardenScene reducedMotion={reducedMotion} />}
+      {scene === 'rookery' && <RookeryScene reducedMotion={reducedMotion} />}
+      {scene === 'rose-ash' && <RoseAshScene reducedMotion={reducedMotion} />}
+      {scene === 'gothic-orbit' && <GothicOrbitScene reducedMotion={reducedMotion} />}
+      {scene === 'winter-bell' && <WinterBellScene reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} />}
       {scene === 'unavailable' && <UnavailableScene />}
       <header className="hud" aria-label="场景导航">
         <div className="hud__location" aria-live="polite"><span className="hud__kicker">当前位置</span><strong>{currentRoute.label}</strong></div>
@@ -130,6 +171,7 @@ export default function App() {
           <AudioControls audio={audio} onChange={setAudio} />
         </div>
       </header>
+      <SceneTransition visible={transitioning} />
       <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
     </div>
   )

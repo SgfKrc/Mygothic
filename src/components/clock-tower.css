@@ -403,6 +403,18 @@
   transform: translate(-50%, 2px);
 }
 
+.clocktower-key.is-pressed {
+  border-color: rgba(255, 244, 215, .98);
+  box-shadow: 0 0 21px rgba(181, 235, 214, .62), inset 0 -5px 9px rgba(38, 78, 72, .38);
+  filter: brightness(1.18) saturate(1.12);
+  transform: translateY(2px);
+}
+
+.clocktower-key.is-black.is-pressed {
+  transform: translate(-50%, 2px);
+  box-shadow: 0 0 20px rgba(181, 235, 214, .58), inset 0 -4px 8px rgba(38, 78, 72, .5);
+}
+
 .clocktower-keyboard__mix {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

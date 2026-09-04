@@ -1203,6 +1203,7 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
   const [timezone, setTimezone] = useState<string | null>(null)
   const [keyboardOpen, setKeyboardOpen] = useState(false)
   const [gearPulse, setGearPulse] = useState(0)
+  const [pressedNote, setPressedNote] = useState<number | null>(null)
   const [toneMix, setToneMix] = useState<ToneMix>({ organ: 1, bell: 1, chant: 1 })
   const frameRef = useRef<number | null>(null)
   const cameraPosition = useRef(0)
@@ -1344,10 +1345,14 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
   const toggleKeyboard = useCallback(() => setKeyboardOpen((previous) => !previous), [])
   const closeKeyboard = useCallback(() => setKeyboardOpen(false), [])
   const enterSaintRelic = useCallback(() => { window.location.hash = '#/saint-relic' }, [])
-  const triggerKeyboardNote = useCallback((frequency: number) => {
+  const triggerKeyboardNote = useCallback((frequency: number, noteIndex?: number) => {
     gearPulseAt.current = performance.now() / 1000
     gearPulseSeed.current = Math.random() * 1000
     setGearPulse((previous) => previous + 1)
+    if (noteIndex !== undefined) {
+      setPressedNote(noteIndex)
+      window.setTimeout(() => setPressedNote((current) => current === noteIndex ? null : current), 170)
+    }
     if (effectsEnabled) playKeyboardNote(frequency, toneMix)
   }, [effectsEnabled, toneMix])
 
@@ -1363,7 +1368,7 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
       if (noteIndex < 0) return
       event.preventDefault()
       const note = CLOCKTOWER_NOTES[noteIndex]
-      if (note) triggerKeyboardNote(note[1])
+      if (note) triggerKeyboardNote(note[1], noteIndex)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -1468,11 +1473,11 @@ export default function ClockTowerScene({ reducedMotion = false, effectsEnabled 
                     <button
                       key={name}
                       type="button"
-                      className={`clocktower-key ${className}`}
+                      className={`clocktower-key ${className} ${pressedNote === noteIndex ? 'is-pressed' : ''}`}
                       style={style}
                       aria-keyshortcuts={qwerty}
                       aria-label={`${name} 音符，键盘 ${qwerty}`}
-                      onClick={() => triggerKeyboardNote(frequency)}
+                      onClick={() => triggerKeyboardNote(frequency, noteIndex)}
                     >
                       <span className="clocktower-key__qwerty">{qwerty}</span>
                       <span className="clocktower-key__note">{name}</span>

@@ -82,6 +82,105 @@
   letter-spacing: .31em;
 }
 
+.saint-relic-controls {
+  position: absolute;
+  z-index: 3;
+  top: clamp(6.4rem, 13vh, 9rem);
+  right: clamp(1.25rem, 6vw, 7.5rem);
+  display: flex;
+  align-items: end;
+  gap: .45rem;
+  padding: .55rem;
+  border: 1px solid rgba(130, 145, 151, .4);
+  border-radius: 3px;
+  background: rgba(6, 9, 14, .78);
+  box-shadow: 0 9px 28px rgba(0, 0, 0, .4);
+  backdrop-filter: blur(7px);
+}
+
+.saint-relic-seed-field {
+  display: grid;
+  gap: .22rem;
+}
+
+.saint-relic-seed-field label {
+  color: rgba(217, 188, 137, .72);
+  font-size: .58rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.saint-relic-seed-field input {
+  width: 7.25rem;
+  min-height: 2.35rem;
+  padding: .35rem .48rem;
+  border: 1px solid rgba(181, 151, 105, .5);
+  border-radius: 2px;
+  color: #eee2cc;
+  background: rgba(16, 18, 25, .9);
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: .86rem;
+  letter-spacing: .08em;
+}
+
+.saint-relic-seed-field input:focus-visible {
+  border-color: #e0b775;
+  outline: 2px solid rgba(224, 183, 117, .45);
+  outline-offset: 2px;
+}
+
+.saint-relic-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 2.35rem;
+  padding: .45rem .58rem;
+  border: 1px solid rgba(200, 166, 108, .55);
+  border-radius: 2px;
+  color: rgba(241, 226, 204, .9);
+  background: rgba(37, 27, 25, .76);
+  cursor: pointer;
+  font-size: .64rem;
+  letter-spacing: .1em;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.saint-relic-action svg {
+  width: .9rem;
+  height: .9rem;
+  color: #dbad67;
+}
+
+.saint-relic-action:hover,
+.saint-relic-action:focus-visible {
+  border-color: #edc77f;
+  color: #fff4e5;
+  background: rgba(63, 39, 30, .9);
+  box-shadow: 0 0 18px rgba(211, 160, 86, .2);
+  outline: none;
+}
+
+.saint-relic-action--quiet {
+  border-color: rgba(121, 157, 157, .5);
+  color: rgba(219, 235, 227, .82);
+  background: rgba(10, 24, 28, .78);
+}
+
+.saint-relic-action--quiet svg {
+  color: #9ec8b6;
+}
+
+.saint-relic-action--garden {
+  border-color: rgba(161, 190, 165, .62);
+  color: rgba(225, 238, 222, .88);
+  background: rgba(9, 24, 22, .82);
+}
+
+.saint-relic-action--garden svg {
+  color: #a8c8a5;
+}
+
 .saint-relic-back {
   position: absolute;
   z-index: 3;
@@ -131,6 +230,41 @@
 
   .saint-relic-subtitle {
     letter-spacing: .18em;
+  }
+
+  .saint-relic-controls {
+    top: 14.2rem;
+    right: .75rem;
+    left: .75rem;
+    align-items: stretch;
+    gap: .35rem;
+    padding: .45rem;
+  }
+
+  .saint-relic-seed-field {
+    flex: 1 1 7rem;
+  }
+
+  .saint-relic-seed-field input {
+    width: 100%;
+  }
+
+  .saint-relic-action {
+    flex: 0 1 auto;
+    min-width: 2.65rem;
+    padding-inline: .52rem;
+  }
+
+  .saint-relic-action span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .saint-relic-back {

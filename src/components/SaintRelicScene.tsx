@@ -1,5 +1,5 @@
-import { ArrowLeft } from 'lucide-react'
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { ArrowLeft, Dices, DoorOpen, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './saint-relic.css'
 
 type SaintRelicSceneProps = {
@@ -7,6 +7,7 @@ type SaintRelicSceneProps = {
 }
 
 type Point = [number, number]
+type RelicFrameImage = HTMLImageElement | null
 
 const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
@@ -70,84 +71,308 @@ const drawNiche = (ctx: CanvasRenderingContext2D, side: -1 | 1, depth: number, w
   ctx.restore()
 }
 
-const drawPixelRelic = (ctx: CanvasRenderingContext2D, centerX: number, baseY: number, width: number, t: number, reducedMotion: boolean) => {
-  const unit = clamp(Math.round(width / 150), 2, 6)
-  const gridWidth = 38
-  const gridHeight = 53
-  const originX = Math.round(centerX - gridWidth * unit / 2)
-  const originY = Math.round(baseY - gridHeight * unit)
-  const bob = reducedMotion ? 0 : Math.round(Math.sin(t * 1.8) * unit * 0.55)
-  const px = (gx: number, gy: number, gw: number, gh: number, color: string) => {
+const seededRandom = (seed: number) => {
+  let state = (seed >>> 0) || 0x51a17
+  return () => {
+    state = Math.imul(state ^ (state >>> 15), 1 | state)
+    state ^= state + Math.imul(state ^ (state >>> 7), 61 | state)
+    return ((state ^ (state >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const drawPixelRelic = (ctx: CanvasRenderingContext2D, centerX: number, baseY: number, width: number, t: number, reducedMotion: boolean, seed: number) => {
+  // Every part of the relic uses the same fine logical grid, including the body.
+  const unit = clamp(Math.round(width / 520), 2, 4)
+  const gridWidth = 76
+  const gridHeight = 104
+  const random = seededRandom(seed)
+  const bob = reducedMotion ? 0 : Math.round(Math.sin(t * 1.8 + seed * .0007) * unit * .55)
+  const lean = (random() - .5) * .18
+  const shift = Math.floor((random() - .5) * 5)
+  const skullTilt = Math.floor(random() * 5) - 2
+  const skullTop = 11 + Math.floor(random() * 4)
+  const eyeGap = 9 + Math.floor(random() * 3)
+  const armRaise = random() > .5 ? -5 : 4
+  const ribBend = Math.floor((random() - .5) * 5)
+  const ornamentMode = Math.floor(random() * 3)
+  // A seed always selects at least one ceremonial object, with combinations
+  // making redraws read as different relic arrangements rather than recolors.
+  const artifactMask = 1 + Math.floor(random() * 7)
+  const artifactSide: -1 | 1 = random() > .5 ? 1 : -1
+  const oppositeSide: -1 | 1 = artifactSide === -1 ? 1 : -1
+  const palette = ['#e0cea3', '#c8b78f', '#9b8c75', '#70685e', '#4c4b49']
+  const accent = random() > .5 ? '#bb8b57' : '#8c6a82'
+  const originX = Math.round(-gridWidth * unit / 2)
+  const originY = Math.round(-gridHeight * unit)
+  const pixel = (gx: number, gy: number, color: string, gw = 1, gh = 1) => {
+    if (gx < 0 || gy < 0 || gx >= gridWidth || gy >= gridHeight) return
     ctx.fillStyle = color
-    ctx.fillRect(originX + gx * unit, originY + gy * unit + bob, Math.max(unit, gw * unit), Math.max(unit, gh * unit))
+    ctx.fillRect(originX + gx * unit, originY + gy * unit, Math.max(1, gw * unit), Math.max(1, gh * unit))
+  }
+  const bonePixel = (gx: number, gy: number, shade = 0, gw = 2, gh = 2) => pixel(gx, gy, palette[clamp(shade, 0, palette.length - 1)], gw, gh)
+  const boneSegment = (x1: number, y1: number, x2: number, y2: number, shade = 0, thickness = 1) => {
+    const length = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1))
+    for (let step = 0; step <= length; step += 1) {
+      const amount = length === 0 ? 0 : step / length
+      const gx = Math.round(x1 + (x2 - x1) * amount)
+      const gy = Math.round(y1 + (y2 - y1) * amount)
+      for (let offset = 0; offset < thickness; offset += 1) bonePixel(gx, gy + (offset > 0 ? (offset % 2 ? 1 : -1) : 0), shade)
+    }
+  }
+  const shadowPixel = (gx: number, gy: number, gw = 1, gh = 1) => pixel(gx, gy, 'rgba(4, 6, 9, .82)', gw, gh)
+  const shadowSegment = (x1: number, y1: number, x2: number, y2: number, thickness = 3) => {
+    const length = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1))
+    for (let step = 0; step <= length; step += 1) {
+      const amount = length === 0 ? 0 : step / length
+      const gx = Math.round(x1 + (x2 - x1) * amount)
+      const gy = Math.round(y1 + (y2 - y1) * amount)
+      for (let offset = 0; offset < thickness; offset += 1) shadowPixel(gx, gy + (offset > 0 ? (offset % 2 ? 1 : -1) : 0))
+    }
+  }
+
+  const drawSword = (side: -1 | 1) => {
+    const baseX = side === -1 ? 9 : 67
+    const inward = side === -1 ? 1 : -1
+    for (let step = 0; step < 27; step += 1) {
+      const gx = baseX + Math.round(inward * step * .32)
+      const gy = 75 - step
+      pixel(gx, gy, step < 22 ? '#d8c99f' : '#8b704f', 2, 1)
+      if (step > 3 && step < 23 && step % 3 === 0) pixel(gx - inward, gy, '#6e6960', 1, 1)
+    }
+    const guardX = baseX + Math.round(inward * 8)
+    pixel(guardX - 5, 76, accent, 11, 2)
+    pixel(guardX - 1, 78, '#8b704f', 3, 6)
+    pixel(guardX - 2, 84, '#d6bd82', 5, 2)
+  }
+
+  const drawStaff = (side: -1 | 1) => {
+    const x = side === -1 ? 6 : 70
+    pixel(x - 1, 18, '#c8b58c', 3, 67)
+    pixel(x - 2, 15, '#8f704f', 5, 3)
+    pixel(x - 1, 11, accent, 3, 5)
+    pixel(x - 4, 9, '#d8c99f', 9, 2)
+    pixel(x - 3, 7, '#c8b58c', 2, 2)
+    pixel(x + 2, 7, '#c8b58c', 2, 2)
+    pixel(x - 2, 84, '#8c6a4a', 5, 2)
+  }
+
+  const drawShield = (side: -1 | 1) => {
+    const center = side === -1 ? 10 : 66
+    for (let row = 0; row < 19; row += 1) {
+      const span = row < 3 ? 3 : row < 14 ? 6 : Math.max(2, 6 - Math.ceil((row - 13) * 1.25))
+      pixel(center - span, 51 + row, '#6c6258', span * 2 + 1, 1)
+      if (span > 2) pixel(center - span + 1, 52 + row, '#292d31', span * 2 - 1, 1)
+    }
+    pixel(center - 1, 57, accent, 3, 9)
+    pixel(center - 3, 60, '#d7c28c', 7, 3)
+    pixel(center - 1, 59, '#f0dfae', 3, 5)
+    pixel(center - 5, 55, '#b7a37e', 2, 2)
+    pixel(center + 4, 55, '#b7a37e', 2, 2)
+    pixel(center - 5, 66, '#b7a37e', 2, 2)
+    pixel(center + 4, 66, '#b7a37e', 2, 2)
   }
 
   ctx.save()
+  ctx.translate(centerX, baseY + bob)
+  ctx.rotate(lean)
+  ctx.scale(1.22, 1.22)
   ctx.imageSmoothingEnabled = false
   ctx.globalCompositeOperation = 'screen'
-  const haloPulse = 0.14 + (reducedMotion ? 0 : Math.sin(t * 2.4) * 0.045)
-  ctx.fillStyle = `rgba(224, 183, 103, ${haloPulse})`
-  ctx.fillRect(originX - unit * 4, originY + unit * 2 + bob, unit * 46, unit * 42)
+  const haloPulse = 0.12 + (reducedMotion ? 0 : Math.sin(t * 2.4 + seed * .001) * .04)
+  const halo = ctx.createRadialGradient(0, originY + unit * 49, unit * 3, 0, originY + unit * 49, unit * 50)
+  halo.addColorStop(0, `rgba(224, 183, 103, ${haloPulse})`)
+  halo.addColorStop(.42, `rgba(224, 183, 103, ${haloPulse * .38})`)
+  halo.addColorStop(1, 'rgba(224, 183, 103, 0)')
+  ctx.fillStyle = halo
+  ctx.fillRect(originX - unit * 10, originY + unit * 2, unit * 96, unit * 94)
   ctx.globalCompositeOperation = 'source-over'
 
-  // Pixel halo and reliquary cross.
-  px(13, 0, 12, 2, '#b78e58')
-  px(9, 2, 20, 2, '#6f583f')
-  px(7, 4, 2, 13, '#8d6c47')
-  px(29, 4, 2, 13, '#8d6c47')
-  px(11, 16, 16, 2, '#b78e58')
-  px(17, 2, 4, 28, '#c09a5e')
-  px(13, 25, 12, 3, '#84623e')
+  // A solid, stepped shadow gives the bone drawing a readable silhouette over
+  // the detailed illustration in the reliquary instead of letting both images
+  // compete at the same contrast.
+  ctx.fillStyle = 'rgba(4, 6, 9, .58)'
+  ctx.beginPath()
+  ctx.ellipse(0, originY + unit * 23, unit * 20, unit * 19, 0, 0, Math.PI * 2)
+  ctx.moveTo(-unit * 14, originY + unit * 40)
+  ctx.lineTo(unit * 14, originY + unit * 40)
+  ctx.lineTo(unit * 11, originY + unit * 79)
+  ctx.lineTo(unit * 7, originY + unit * 85)
+  ctx.lineTo(-unit * 7, originY + unit * 85)
+  ctx.lineTo(-unit * 11, originY + unit * 79)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(4, 6, 9, .58)'
+  ctx.lineWidth = unit * 6
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(-unit * 13, originY + unit * 43)
+  ctx.lineTo(-unit * 24, originY + unit * 73)
+  ctx.moveTo(unit * 13, originY + unit * 43)
+  ctx.lineTo(unit * 24, originY + unit * 73)
+  ctx.moveTo(-unit * 7, originY + unit * 82)
+  ctx.lineTo(-unit * 10, originY + unit * 103)
+  ctx.moveTo(unit * 7, originY + unit * 82)
+  ctx.lineTo(unit * 10, originY + unit * 103)
+  ctx.stroke()
+  ctx.lineCap = 'butt'
 
-  // Skull cap, cheekbones and jaw in stepped bone pixels.
-  px(14, 6, 10, 2, '#d9c69d')
-  px(11, 8, 16, 7, '#a99576')
-  px(9, 10, 3, 7, '#726b62')
-  px(26, 10, 3, 7, '#6c6560')
-  px(12, 15, 14, 3, '#d1bd92')
-  px(14, 18, 10, 4, '#8e806d')
-  px(16, 20, 6, 3, '#d5c49a')
-  px(14, 11, 4, 4, '#10141b')
-  px(22, 11, 4, 4, '#10141b')
-  px(15, 12, 2, 1, '#e7f1d5')
-  px(23, 12, 2, 1, '#e7f1d5')
-  px(18, 15, 2, 3, '#1a1a1d')
-  px(20, 15, 2, 3, '#1a1a1d')
-  px(14, 19, 2, 3, '#d7c399')
-  px(17, 19, 2, 3, '#655e58')
-  px(20, 19, 2, 3, '#d7c399')
-  px(23, 19, 2, 3, '#655e58')
-
-  // Spine and ribs.
-  px(18, 23, 4, 22, '#d5c29b')
-  for (let rib = 0; rib < 6; rib += 1) {
-    const y = 25 + rib * 3
-    const span = 7 - Math.floor(rib * 0.65)
-    px(18 - span, y, span, 2, rib % 2 ? '#9a896e' : '#c8b48b')
-    px(22, y, span, 2, rib % 2 ? '#9a896e' : '#c8b48b')
-    px(18 - span, y + 1, 2, 2, '#665b52')
-    px(20 + span, y + 1, 2, 2, '#665b52')
+  // The frame and ornament are seed variants, not a fixed stamp behind the body.
+  pixel(36 + shift, 1, accent, ornamentMode === 2 ? 5 : 4, 2)
+  pixel(27 + shift, 3, '#765d49', ornamentMode === 1 ? 20 : 16, 2)
+  pixel(22 + shift, 5, '#987552', 2, 24)
+  pixel(50 + shift, 5, '#987552', 2, 24)
+  pixel(29 + shift, 25, accent, ornamentMode === 0 ? 16 : 11, 2)
+  pixel(36 + shift, 4, '#c19a5f', 3, 39)
+  pixel(27 + shift, 21, '#8c6a48', ornamentMode === 2 ? 19 : 15, 3)
+  if (ornamentMode === 1) {
+    for (let bead = 0; bead < 8; bead += 1) pixel(26 + shift + (bead % 2 ? 1 : -1), 30 + bead * 5, '#b98c5b', 2, 2)
+  }
+  if (ornamentMode === 2) {
+    for (let ray = 0; ray < 7; ray += 1) {
+      const rayX = 36 + shift + (ray - 3) * 4
+      pixel(rayX, 8 - Math.abs(ray - 3), '#b28b5d', 2, 2 + Math.max(0, 3 - Math.abs(ray - 3)))
+    }
   }
 
-  // Shoulder blades, arms and pelvis.
-  px(8, 24, 9, 3, '#8f7e68')
-  px(21, 24, 9, 3, '#8f7e68')
-  px(6, 27, 4, 11, '#c6b38b')
-  px(28, 27, 4, 11, '#c6b38b')
-  px(4, 36, 5, 3, '#71675d')
-  px(30, 36, 5, 3, '#71675d')
-  px(12, 44, 14, 4, '#c6b38b')
-  px(14, 48, 4, 5, '#9d8c70')
-  px(20, 48, 4, 5, '#9d8c70')
+  // A translucent pixel silhouette separates the relic from the artwork in
+  // the rear frame, while the bone cells above it retain their fine texture.
+  const shadowCenter = 38 + skullTilt + shift
+  const shadowRows = [7, 10, 13, 16, 19, 20, 20, 20, 20, 19, 19, 18, 18, 18, 17, 17, 17, 17, 16, 16, 15, 15, 14, 14, 13, 12, 11, 10, 9, 8]
+  for (let row = 0; row < shadowRows.length; row += 1) {
+    const half = shadowRows[row]
+    for (let gx = shadowCenter - half; gx <= shadowCenter + half; gx += 1) shadowPixel(gx, skullTop + row)
+  }
+  shadowSegment(shadowCenter, 42, shadowCenter, 83, 5)
+  shadowSegment(shadowCenter - 2, 45, shadowCenter - 15, 49, 4)
+  shadowSegment(shadowCenter + 2, 45, shadowCenter + 15, 49, 4)
+  shadowSegment(shadowCenter - 12, 49, shadowCenter - 16, 62, 4)
+  shadowSegment(shadowCenter + 12, 49, shadowCenter + 16, 62, 4)
+  shadowSegment(shadowCenter - 16, 62, shadowCenter - 23, 76, 4)
+  shadowSegment(shadowCenter + 16, 62, shadowCenter + 23, 76, 4)
+  shadowSegment(shadowCenter - 10, 80, shadowCenter - 8, 103, 5)
+  shadowSegment(shadowCenter + 6, 80, shadowCenter + 8, 103, 5)
 
-  ctx.fillStyle = 'rgba(245, 224, 169, .7)'
-  for (const [gx, gy] of [[12, 8], [25, 9], [10, 16], [27, 17], [16, 26], [23, 31], [11, 38], [26, 39]] as const) {
-    ctx.fillRect(originX + gx * unit, originY + gy * unit + bob, Math.max(1, Math.ceil(unit * 0.45)), Math.max(1, Math.ceil(unit * 0.45)))
+  // Seeded skull with a rounded cranium, cheek taper and a separate jaw.
+  const skullCenter = shadowCenter
+  const skullRows = [7, 11, 15, 18, 20, 21, 21, 21, 21, 21, 21, 20, 20, 20, 19, 19, 19, 18, 18, 18, 17, 17, 16, 16, 15, 14, 13, 12, 11, 10]
+  for (let row = 0; row < skullRows.length; row += 1) {
+    const gy = skullTop + row
+    const half = skullRows[row] + Math.round((random() - .5) * 1.2)
+    const left = skullCenter - half
+    const right = skullCenter + half
+    for (let gx = left; gx <= right; gx += 1) {
+      const eyeRow = row >= 9 && row <= 16
+      const eyeCavity = eyeRow && ((gx >= skullCenter - eyeGap - 5 && gx <= skullCenter - eyeGap + 1) || (gx >= skullCenter + eyeGap - 1 && gx <= skullCenter + eyeGap + 5))
+      const noseCavity = row >= 17 && row <= 21 && gx >= skullCenter - 3 && gx <= skullCenter + 3
+      if (eyeCavity || noseCavity) continue
+      const edge = gx === left || gx === right || row < 2 || row > skullRows.length - 3
+      bonePixel(gx, gy, edge ? 2 : Math.floor(random() * 3))
+    }
+  }
+  // Cheek plates and a narrow, articulated lower jaw.
+  for (const side of [-1, 1] as const) {
+    boneSegment(skullCenter + side * 8, skullTop + 22, skullCenter + side * 11, skullTop + 28, 2)
+    boneSegment(skullCenter + side * 11, skullTop + 28, skullCenter + side * 7, skullTop + 32, 1)
+  }
+  for (let jaw = 0; jaw < 3; jaw += 1) {
+    boneSegment(skullCenter - (9 - jaw), skullTop + 31 + jaw, skullCenter + (9 - jaw), skullTop + 31 + jaw, jaw === 1 ? 1 : 2)
+  }
+  for (const side of [-1, 1] as const) {
+    const eyeX = skullCenter + side * eyeGap
+    for (let eyeRow = 0; eyeRow < 6; eyeRow += 1) {
+      pixel(eyeX - 4 + (eyeRow > 2 ? side : 0), skullTop + 10 + eyeRow, '#090c11', 7, 1)
+    }
+    pixel(eyeX - 1, skullTop + 13, '#eff4dd', 3, 1)
+    pixel(eyeX + side * 2, skullTop + 15, '#aebd9d', 2, 1)
+  }
+  pixel(skullCenter - 2, skullTop + 18, '#0a0c10', 5, 5)
+  for (let tooth = 0; tooth < 9; tooth += 1) {
+    const toothX = skullCenter - 8 + tooth * 2
+    const toothHeight = 2 + ((tooth + Math.floor(random() * 3)) % 3)
+    pixel(toothX, skullTop + 32, tooth % 2 ? '#817865' : '#e0d0a5', 1, toothHeight)
+  }
+
+  // Fine-grained torso: vertebrae, clavicles and curved ribs follow an
+  // anatomical cage instead of rectangular bars.
+  const spineX = 37 + shift
+  for (let vertebra = 0; vertebra < 42; vertebra += 1) {
+    const gy = skullTop + 36 + vertebra
+    if (gy > 82) break
+    bonePixel(spineX + (vertebra % 4 === 0 ? 1 : 0), gy, vertebra % 3 === 0 ? 1 : 2)
+  }
+  boneSegment(spineX - 1, 43 + armRaise, spineX - 12, 46 + armRaise, 1, 2)
+  boneSegment(spineX + 1, 43 - armRaise, spineX + 12, 46 - armRaise, 1, 2)
+  for (let rib = 0; rib < 9; rib += 1) {
+    const ribY = 48 + rib * 3
+    const ribSpan = 14 - Math.floor(rib * .65)
+    const ribDepth = 3 + Math.floor(rib * .35)
+    for (const side of [-1, 1] as const) {
+      for (let segment = 0; segment <= ribSpan; segment += 1) {
+        const amount = segment / ribSpan
+        const gx = spineX + side * (3 + segment)
+        const gy = ribY + Math.round(Math.sin(amount * Math.PI) * ribDepth) + Math.round(Math.sin(rib * .7 + ribBend) * .4)
+        if (segment % 5 !== 4 || segment === ribSpan) bonePixel(gx, gy, rib % 2 ? 1 : 2)
+      }
+    }
+    pixel(spineX - ribSpan - 3, ribY + 1, '#55534d')
+    pixel(spineX + ribSpan + 3, ribY + 1, '#55534d')
+  }
+
+  // Small plates at the sternum, scapulae and knees break up the old stick
+  // silhouette while staying on the same fine logical grid as every other bone.
+  bonePixel(spineX - 2, 46, 1, 4, 3)
+  bonePixel(spineX - 2, 53, 0, 4, 3)
+  for (const side of [-1, 1] as const) {
+    bonePixel(spineX + side * 13, 47, 1, 4, 3)
+    bonePixel(spineX + side * 16, 61, 2, 3, 3)
+    bonePixel(spineX + side * 9, 91, 0, 4, 3)
+    bonePixel(spineX + side * 6, 99, 1, 3, 3)
+  }
+
+  // Arms are two bone segments with visible elbows and wrists.
+  const leftShoulder = [22 + shift, 45 + armRaise]
+  const rightShoulder = [52 + shift, 45 - armRaise]
+  const leftElbow = [14 + shift - Math.floor(armRaise * .25), 61 + armRaise]
+  const rightElbow = [60 + shift + Math.floor(armRaise * .25), 60 - armRaise]
+  const leftWrist = [9 + shift, 75 + armRaise]
+  const rightWrist = [66 + shift, 74 - armRaise]
+  boneSegment(leftShoulder[0], leftShoulder[1], leftElbow[0], leftElbow[1], 1, 2)
+  boneSegment(leftElbow[0], leftElbow[1], leftWrist[0], leftWrist[1], 2, 2)
+  boneSegment(rightShoulder[0], rightShoulder[1], rightElbow[0], rightElbow[1], 1, 2)
+  boneSegment(rightElbow[0], rightElbow[1], rightWrist[0], rightWrist[1], 2, 2)
+  pixel(leftElbow[0], leftElbow[1], '#e0cea3', 3, 3)
+  pixel(rightElbow[0], rightElbow[1], '#e0cea3', 3, 3)
+  for (let finger = 0; finger < 5; finger += 1) {
+    pixel(leftWrist[0] - finger, leftWrist[1] + 2 + (finger % 2), '#71685d')
+    pixel(rightWrist[0] + finger, rightWrist[1] + 2 + (finger % 2), '#71685d')
+  }
+
+  // Iliac wings, sacrum and two articulated legs complete the silhouette.
+  for (const side of [-1, 1] as const) {
+    boneSegment(spineX, 78, spineX + side * 13, 76, 2, 2)
+    boneSegment(spineX + side * 13, 76, spineX + side * 17, 82, 1, 2)
+    boneSegment(spineX + side * 5, 82, spineX + side * 9, 94, 2, 2)
+    pixel(spineX + side * 9, 94, '#e0cea3', 3, 3)
+    boneSegment(spineX + side * 9, 96, spineX + side * 7, 102, 1, 2)
+    boneSegment(spineX + side * 7, 102, spineX + side * 4, 103, 2, 2)
+  }
+  boneSegment(spineX - 2, 79, spineX + 2, 84, 1, 2)
+
+  if (artifactMask & 1) drawSword(artifactSide)
+  if (artifactMask & 2) drawStaff(oppositeSide)
+  if (artifactMask & 4) drawShield(artifactMask & 1 ? oppositeSide : artifactSide)
+
+  // A few restrained flecks sit near joints and bone edges; unrestricted noise
+  // made the fine grid read as static instead of an anatomical figure.
+  for (let fleck = 0; fleck < 20; fleck += 1) {
+    const gx = 14 + Math.floor(random() * 48)
+    const gy = 44 + Math.floor(random() * 52)
+    if (Math.abs(gx - spineX) < 18 || gy > 78) pixel(gx, gy, random() > .5 ? 'rgba(245, 224, 169, .62)' : '#5d5a54', 1, 1)
   }
   ctx.restore()
 }
 
-const drawRelicCase = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, hue: number, t: number) => {
+const drawRelicCase = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, hue: number, t: number, image?: RelicFrameImage) => {
   ctx.save()
   ctx.shadowColor = 'rgba(0, 0, 0, .82)'
   ctx.shadowBlur = width * .14
@@ -162,18 +387,43 @@ const drawRelicCase = (ctx: CanvasRenderingContext2D, x: number, y: number, widt
   glow.addColorStop(1, 'rgba(10, 11, 17, 0)')
   ctx.fillStyle = glow
   ctx.fillRect(x - width * .46, y - height * .94, width * .92, height * .88)
+  const innerX = x - width * .39
+  const innerY = y - height * .79
+  const innerWidth = width * .78
+  const innerHeight = height * .56
   ctx.fillStyle = '#17151d'
-  ctx.fillRect(x - width * .39, y - height * .79, width * .78, height * .56)
+  ctx.fillRect(innerX, innerY, innerWidth, innerHeight)
+  if (image?.complete && image.naturalWidth > 0 && image.naturalHeight > 0) {
+    const sourceRatio = image.naturalWidth / image.naturalHeight
+    const frameRatio = innerWidth / innerHeight
+    let sourceWidth = image.naturalWidth
+    let sourceHeight = image.naturalHeight
+    let sourceX = 0
+    let sourceY = 0
+    if (sourceRatio > frameRatio) {
+      sourceWidth = image.naturalHeight * frameRatio
+      sourceX = (image.naturalWidth - sourceWidth) / 2
+    } else {
+      sourceHeight = image.naturalWidth / frameRatio
+      sourceY = (image.naturalHeight - sourceHeight) / 2
+    }
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(innerX, innerY, innerWidth, innerHeight)
+    ctx.clip()
+    ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, innerX, innerY, innerWidth, innerHeight)
+    ctx.fillStyle = 'rgba(7, 9, 14, .26)'
+    ctx.fillRect(innerX, innerY, innerWidth, innerHeight)
+    const wash = ctx.createLinearGradient(innerX, innerY, innerX, innerY + innerHeight)
+    wash.addColorStop(0, 'rgba(7, 8, 13, .08)')
+    wash.addColorStop(1, 'rgba(7, 8, 13, .42)')
+    ctx.fillStyle = wash
+    ctx.fillRect(innerX, innerY, innerWidth, innerHeight)
+    ctx.restore()
+  }
   ctx.strokeStyle = 'rgba(137, 148, 150, .38)'
   ctx.lineWidth = Math.max(1, width * .009)
-  ctx.strokeRect(x - width * .39, y - height * .79, width * .78, height * .56)
-  ctx.fillStyle = `hsla(${hue} 58% 65% / .8)`
-  ctx.beginPath()
-  ctx.arc(x, y - height * .5, width * .14, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillStyle = 'rgba(232, 207, 155, .55)'
-  ctx.fillRect(x - width * .025, y - height * .72, width * .05, height * .43)
-  ctx.fillRect(x - width * .2, y - height * .52, width * .4, Math.max(1, height * .035))
+  ctx.strokeRect(innerX, innerY, innerWidth, innerHeight)
   ctx.fillStyle = '#2a2025'
   ctx.fillRect(x - width * .58, y - height * .06, width * 1.16, height * .08)
   ctx.strokeStyle = 'rgba(215, 177, 116, .42)'
@@ -202,7 +452,7 @@ const drawCandle = (ctx: CanvasRenderingContext2D, x: number, baseY: number, siz
   ctx.restore()
 }
 
-const drawVaultDetails = (ctx: CanvasRenderingContext2D, width: number, height: number, t: number) => {
+const drawVaultDetails = (ctx: CanvasRenderingContext2D, width: number, height: number, t: number, frameImages: readonly RelicFrameImage[]) => {
   const sideScale = Math.max(0.72, Math.min(1.2, width / 1100))
   const shelfY = height * .68
   ctx.save()
@@ -230,8 +480,8 @@ const drawVaultDetails = (ctx: CanvasRenderingContext2D, width: number, height: 
     ctx.strokeRect(x - shelfWidth * .56, shelfY - height * .29, shelfWidth * 1.12, height * .33)
   }
 
-  drawRelicCase(ctx, width * .16, height * .67, width * .12 * sideScale, height * .22 * sideScale, 344, t)
-  drawRelicCase(ctx, width * .84, height * .67, width * .12 * sideScale, height * .22 * sideScale, 44, t)
+  drawRelicCase(ctx, width * .16, height * .67, width * .12 * sideScale, height * .22 * sideScale, 344, t, frameImages[0])
+  drawRelicCase(ctx, width * .84, height * .67, width * .12 * sideScale, height * .22 * sideScale, 44, t, frameImages[1])
   drawCandle(ctx, width * .28, height * .74, width * .025, t)
   drawCandle(ctx, width * .72, height * .74, width * .025, t + 1.4)
 
@@ -267,7 +517,71 @@ const drawVaultDetails = (ctx: CanvasRenderingContext2D, width: number, height: 
   ctx.restore()
 }
 
-const drawSaintRelicRoom = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, reducedMotion: boolean) => {
+const drawHolyLight = (ctx: CanvasRenderingContext2D, width: number, height: number, vpX: number, floorY: number, t: number, reducedMotion: boolean) => {
+  const pulse = reducedMotion ? 0 : Math.sin(t * 1.7) * .018
+  const topX = vpX + (reducedMotion ? 0 : Math.sin(t * .35) * width * .012)
+  const topY = -height * .04
+  const bottomY = floorY + height * .16
+  const topHalf = width * .026
+  const bottomHalf = width * .2
+
+  // Clip the shaft before compositing so the room outside the holy beam stays dark.
+  ctx.save()
+  polygon(ctx, [[topX - topHalf, topY], [topX + topHalf, topY], [vpX + bottomHalf, bottomY], [vpX - bottomHalf, bottomY]])
+  ctx.clip()
+  ctx.globalCompositeOperation = 'screen'
+  const beam = ctx.createLinearGradient(topX, topY, vpX, bottomY)
+  beam.addColorStop(0, 'rgba(255, 248, 211, .025)')
+  beam.addColorStop(.34, `rgba(255, 240, 187, ${.065 + pulse})`)
+  beam.addColorStop(1, `rgba(224, 183, 103, ${.13 + pulse})`)
+  ctx.fillStyle = beam
+  ctx.fillRect(vpX - bottomHalf, topY, bottomHalf * 2, bottomY - topY)
+  const shaft = ctx.createRadialGradient(vpX, floorY * .82, 0, vpX, floorY * .82, bottomHalf * 1.2)
+  shaft.addColorStop(0, 'rgba(255, 249, 218, .16)')
+  shaft.addColorStop(1, 'rgba(255, 223, 153, 0)')
+  ctx.fillStyle = shaft
+  ctx.fillRect(vpX - bottomHalf * 1.2, topY, bottomHalf * 2.4, bottomY - topY)
+  ctx.restore()
+
+  // The beam leaves a restrained, perspective grid-shaped caustic on the floor.
+  const spotX = vpX + (reducedMotion ? 0 : Math.sin(t * .35) * width * .01)
+  const spotY = height * .95
+  const spotWidth = width * .3
+  const spotHeight = height * .055
+  ctx.save()
+  ctx.beginPath()
+  ctx.ellipse(spotX, spotY, spotWidth, spotHeight, 0, 0, Math.PI * 2)
+  ctx.clip()
+  ctx.beginPath()
+  ctx.rect(0, height * .9, width, height * .1)
+  ctx.clip()
+  ctx.globalCompositeOperation = 'screen'
+  const spot = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, spotWidth)
+  spot.addColorStop(0, 'rgba(255, 241, 190, .18)')
+  spot.addColorStop(.62, 'rgba(222, 177, 101, .065)')
+  spot.addColorStop(1, 'rgba(222, 177, 101, 0)')
+  ctx.fillStyle = spot
+  ctx.fillRect(spotX - spotWidth, spotY - spotHeight, spotWidth * 2, spotHeight * 2)
+  ctx.strokeStyle = `rgba(255, 227, 161, ${.2 + pulse})`
+  ctx.lineWidth = Math.max(1, width * .0012)
+  for (let line = -6; line <= 6; line += 1) {
+    const startX = spotX + line * spotWidth * .15
+    ctx.beginPath()
+    ctx.moveTo(startX, spotY - spotHeight)
+    ctx.lineTo(spotX + line * spotWidth * .42, spotY + spotHeight)
+    ctx.stroke()
+  }
+  for (let row = 0; row < 5; row += 1) {
+    const y = spotY - spotHeight + row * spotHeight * .5
+    ctx.beginPath()
+    ctx.moveTo(spotX - spotWidth, y)
+    ctx.lineTo(spotX + spotWidth, y)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+const drawSaintRelicRoom = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, reducedMotion: boolean, seed: number, frameImages: readonly RelicFrameImage[]) => {
   const t = reducedMotion ? 0 : time / 1000
   const vpX = width * 0.5
   const vpY = height * 0.39
@@ -383,9 +697,10 @@ const drawSaintRelicRoom = (ctx: CanvasRenderingContext2D, width: number, height
   ctx.stroke()
   ctx.fillStyle = `rgba(216, 172, 99, ${0.12 + Math.sin(t * 2.1) * .03})`
   ctx.fillRect(width * .34, height * .77, width * .32, height * .18)
-  drawVaultDetails(ctx, width, height, t)
-  drawRelicCase(ctx, vpX, height * .86, width * .25, height * .36, 316, t)
-  drawPixelRelic(ctx, vpX, height * .84, width, t, reducedMotion)
+  drawVaultDetails(ctx, width, height, t, frameImages)
+  drawRelicCase(ctx, vpX, height * .86, width * .25, height * .36, 316, t, frameImages[2])
+  drawPixelRelic(ctx, vpX, height * .84, width, t, reducedMotion, seed)
+  drawHolyLight(ctx, width, height, vpX, floorY, t, reducedMotion)
 
   // Slow dust motes provide scale without flattening the architecture.
   ctx.fillStyle = 'rgba(230, 202, 146, .5)'
@@ -401,6 +716,37 @@ const drawSaintRelicRoom = (ctx: CanvasRenderingContext2D, width: number, height
 export default function SaintRelicScene({ reducedMotion = false }: SaintRelicSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  const [seed, setSeed] = useState(20260903)
+  const [seedInput, setSeedInput] = useState('20260903')
+  const [frameImages, setFrameImages] = useState<readonly RelicFrameImage[]>([])
+
+  useEffect(() => {
+    let disposed = false
+    const sources = ['/relic-frame-01.png', '/relic-frame-02.png', '/relic-frame-03.png']
+    const images = sources.map((source) => {
+      const image = new Image()
+      image.decoding = 'async'
+      image.src = source
+      return image
+    })
+    Promise.all(images.map((image) => image.decode().catch(() => undefined))).then(() => {
+      if (!disposed) setFrameImages(images)
+    })
+    return () => { disposed = true }
+  }, [])
+
+  const redrawWithSeed = () => {
+    const parsed = Number.parseInt(seedInput, 10)
+    const nextSeed = Number.isFinite(parsed) ? (parsed >>> 0) : seed
+    setSeed(nextSeed)
+    setSeedInput(String(nextSeed))
+  }
+
+  const redrawRandom = () => {
+    const nextSeed = Math.floor(Math.random() * 0xffffffff) >>> 0
+    setSeed(nextSeed)
+    setSeedInput(String(nextSeed))
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -423,11 +769,11 @@ export default function SaintRelicScene({ reducedMotion = false }: SaintRelicSce
       canvas.style.width = `${width}px`
       canvas.style.height = `${height}px`
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      drawSaintRelicRoom(ctx, width, height, 0, reducedMotion)
+      drawSaintRelicRoom(ctx, width, height, 0, reducedMotion, seed, frameImages)
     }
     const render = (time: number) => {
       if (disposed) return
-      drawSaintRelicRoom(ctx, width, height, time, reducedMotion)
+      drawSaintRelicRoom(ctx, width, height, time, reducedMotion, seed, frameImages)
       if (!reducedMotion) frame = window.requestAnimationFrame(render)
     }
     const observer = new ResizeObserver(resize)
@@ -439,11 +785,11 @@ export default function SaintRelicScene({ reducedMotion = false }: SaintRelicSce
       window.cancelAnimationFrame(frame)
       observer.disconnect()
     }
-  }, [reducedMotion])
+  }, [frameImages, reducedMotion, seed])
 
   const backStyle: CSSProperties = { left: '50%', bottom: '6%' }
   return (
-    <main className="saint-relic-scene" data-scene="saint-relic" aria-labelledby="saint-relic-title">
+    <main className="saint-relic-scene" data-scene="saint-relic" data-seed={seed} aria-labelledby="saint-relic-title">
       <div className="saint-relic-stage" ref={stageRef}>
         <canvas ref={canvasRef} className="saint-relic-canvas" role="img" aria-label="具有透视墙壁和中央像素圣徒遗骨像的圣遗物室" />
         <header className="saint-relic-header">
@@ -451,6 +797,24 @@ export default function SaintRelicScene({ reducedMotion = false }: SaintRelicSce
           <h1 id="saint-relic-title">圣遗物室</h1>
           <p className="saint-relic-subtitle">THE RELIC VAULT</p>
         </header>
+        <section className="saint-relic-controls" aria-label="圣徒遗骨重绘控制">
+          <div className="saint-relic-seed-field">
+            <label htmlFor="saint-relic-seed">种子</label>
+            <input id="saint-relic-seed" type="number" inputMode="numeric" value={seedInput} onChange={(event) => setSeedInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') redrawWithSeed() }} />
+          </div>
+          <button type="button" className="saint-relic-action" onClick={redrawWithSeed}>
+            <RefreshCw aria-hidden="true" />
+            <span>按种子重绘</span>
+          </button>
+          <button type="button" className="saint-relic-action saint-relic-action--quiet" onClick={redrawRandom}>
+            <Dices aria-hidden="true" />
+            <span>随机种子</span>
+          </button>
+          <button type="button" className="saint-relic-action saint-relic-action--garden" onClick={() => { window.location.hash = '#/bone-garden' }} title="前往骨园">
+            <DoorOpen aria-hidden="true" />
+            <span>进入骨园</span>
+          </button>
+        </section>
         <button type="button" className="saint-relic-back" style={backStyle} onClick={() => { window.location.hash = '#/clocktower' }}>
           <ArrowLeft aria-hidden="true" />
           <span>返回钟楼</span>

@@ -1,4 +1,4 @@
-import { ArrowLeft, Crosshair, Dices, RotateCcw, RotateCw, Sparkles } from 'lucide-react'
+import { Crosshair, Dices, Link2, RotateCcw, RotateCw, Sparkles, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import './gothic-orbit.css'
 
@@ -247,13 +247,13 @@ const drawStarEffect = (ctx: CanvasRenderingContext2D, index: number, x: number,
   ctx.restore()
 }
 
-const drawGothicOrbit = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, reducedMotion: boolean, rotation: number, seed: number, selectedId: string, parallaxX: number, parallaxY: number, backgroundImage: HTMLImageElement | null) => {
+const drawGothicOrbit = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, reducedMotion: boolean, rotation: number, seed: number, selectedId: string, hoveredId: string, showConnections: boolean, ritualMode: boolean, parallaxX: number, parallaxY: number, backgroundImage: HTMLImageElement | null) => {
   const metrics = getMetrics(width, height)
   const centerX = metrics.centerX + parallaxX * width * .026
   const centerY = metrics.centerY + parallaxY * height * .02
   const { radius } = metrics
   const layout = getLayout(seed)
-  const autoRotation = reducedMotion ? 0 : time * .000018
+  const autoRotation = reducedMotion ? 0 : time * .00012
   const orbitRotation = rotation + autoRotation
   const random = seededRandom(seed ^ 0x9e3779b9)
 
@@ -265,14 +265,14 @@ const drawGothicOrbit = (ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.fillStyle = backdrop
   ctx.fillRect(0, 0, width, height)
 
-  // Optional art plate: a future gothic-orbit-bg.png can replace this quiet placeholder layer.
+  // Low-alpha art plate keeps the supplied 90s reference behind the observatory layers.
   if (backgroundImage?.complete && backgroundImage.naturalWidth > 0) {
     ctx.save()
     const imageScale = Math.max(width / backgroundImage.naturalWidth, height / backgroundImage.naturalHeight)
     const imageWidth = backgroundImage.naturalWidth * imageScale
     const imageHeight = backgroundImage.naturalHeight * imageScale
     ctx.translate(parallaxX * width * .018, parallaxY * height * .012)
-    ctx.globalAlpha = .15
+    ctx.globalAlpha = .46
     ctx.drawImage(backgroundImage, (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight)
     ctx.restore()
   }
@@ -326,6 +326,77 @@ const drawGothicOrbit = (ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillStyle = `rgba(195, 183, 147, ${alpha})`
     ctx.fillRect(x, y, Math.max(1, width * .0012), Math.max(1, width * .0012))
   }
+  ctx.restore()
+
+  // Layered observatory mechanics sit behind the zodiac ring. The eccentric
+  // tracks, rotating sweep and drifting motes make pointer parallax visible
+  // even when the supplied background plate is quiet.
+  ctx.save()
+  ctx.translate(centerX, centerY)
+  const backgroundPhase = reducedMotion ? 0 : time * .001
+  ctx.rotate(backgroundPhase * .12 + rotation * .18)
+  for (let track = 0; track < 6; track += 1) {
+    const trackRadius = radius * (1.22 + track * .16)
+    ctx.strokeStyle = `rgba(${track % 2 ? '126, 157, 158' : '192, 157, 101'}, ${.15 + track * .018})`
+    ctx.lineWidth = Math.max(1, radius * (.0042 - track * .00015))
+    ctx.setLineDash(track % 2 ? [radius * .055, radius * .08] : [])
+    ctx.beginPath()
+    ctx.ellipse(0, 0, trackRadius, trackRadius * (.42 + (track % 3) * .08), (track - 2) * .12, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  ctx.setLineDash([])
+  // Bright maintenance motes travel around the eccentric tracks, making the
+  // depth layers readable even when the pointer is still.
+  ctx.globalCompositeOperation = 'screen'
+  for (let mote = 0; mote < 18; mote += 1) {
+    const track = mote % 6
+    const trackRadius = radius * (1.22 + track * .16)
+    const ellipseY = trackRadius * (.42 + (track % 3) * .08)
+    const angle = backgroundPhase * (.32 + track * .035) + mote * 1.91
+    const x = Math.cos(angle) * trackRadius
+    const y = Math.sin(angle) * ellipseY
+    const moteRadius = Math.max(2.2, radius * (.009 + (mote % 3) * .0022))
+    ctx.fillStyle = mote % 3 === 0 ? 'rgba(255, 214, 127, .96)' : 'rgba(151, 220, 218, .82)'
+    ctx.shadowColor = ctx.fillStyle
+    ctx.shadowBlur = radius * .08
+    ctx.beginPath()
+    ctx.arc(x, y, moteRadius, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.shadowBlur = 0
+  ctx.globalCompositeOperation = 'screen'
+  const pulse = ritualMode ? .62 + Math.sin(backgroundPhase * 3.2) * .2 : .3 + Math.sin(backgroundPhase * 2.1) * .08
+  const halo = ctx.createRadialGradient(0, 0, radius * .34, 0, 0, radius * (ritualMode ? 1.85 : 1.42))
+  halo.addColorStop(0, `rgba(211, 177, 105, ${pulse * .28})`)
+  halo.addColorStop(.5, `rgba(109, 161, 164, ${pulse * .14})`)
+  halo.addColorStop(1, 'rgba(48, 71, 72, 0)')
+  ctx.fillStyle = halo
+  ctx.beginPath()
+  ctx.arc(0, 0, radius * (ritualMode ? 1.75 : 1.28), 0, Math.PI * 2)
+  ctx.fill()
+  ctx.strokeStyle = `rgba(245, 207, 128, ${ritualMode ? .72 : .46})`
+  ctx.lineWidth = Math.max(1.5, radius * .009)
+  ctx.beginPath()
+  const sweepRadius = radius * 1.18
+  const sweepAngle = backgroundPhase * (ritualMode ? 1.15 : .7)
+  ctx.moveTo(0, 0)
+  ctx.lineTo(Math.cos(sweepAngle) * sweepRadius, Math.sin(sweepAngle) * sweepRadius)
+  ctx.stroke()
+  ctx.fillStyle = `rgba(245, 207, 128, ${ritualMode ? .13 : .06})`
+  ctx.beginPath()
+  ctx.moveTo(0, 0)
+  ctx.arc(0, 0, sweepRadius, sweepAngle - .055, sweepAngle + .055)
+  ctx.closePath()
+  ctx.fill()
+  // A second, broad sweep catches the outer rings and produces a readable
+  // moving highlight instead of a barely visible centre line.
+  ctx.globalAlpha = ritualMode ? .9 : .58
+  ctx.strokeStyle = ritualMode ? 'rgba(255, 222, 145, .62)' : 'rgba(226, 190, 113, .34)'
+  ctx.lineWidth = Math.max(2, radius * .014)
+  ctx.beginPath()
+  ctx.arc(0, 0, radius * 1.34, sweepAngle - .12, sweepAngle + .12)
+  ctx.stroke()
+  ctx.globalAlpha = 1
   ctx.restore()
 
   ctx.save()
@@ -392,34 +463,57 @@ const drawGothicOrbit = (ctx: CanvasRenderingContext2D, width: number, height: n
 
   // Constellation spokes sit above the brass rings and below the star lights.
   ctx.lineCap = 'round'
-  CONNECTIONS.forEach(([from, to]) => {
-    const a = layout[from]
-    const b = layout[to]
-    const ax = Math.cos(a.angle) * radius * a.radius
-    const ay = Math.sin(a.angle) * radius * a.radius
-    const bx = Math.cos(b.angle) * radius * b.radius
-    const by = Math.sin(b.angle) * radius * b.radius
-    ctx.strokeStyle = 'rgba(157, 177, 170, .3)'
-    ctx.lineWidth = Math.max(1, radius * .006)
-    ctx.beginPath()
-    ctx.moveTo(ax, ay)
-    ctx.lineTo(bx, by)
-    ctx.stroke()
-  })
+  if (showConnections) {
+    CONNECTIONS.forEach(([from, to]) => {
+      const a = layout[from]
+      const b = layout[to]
+      const ax = Math.cos(a.angle) * radius * a.radius
+      const ay = Math.sin(a.angle) * radius * a.radius
+      const bx = Math.cos(b.angle) * radius * b.radius
+      const by = Math.sin(b.angle) * radius * b.radius
+      const connectedToSelection = a.id === selectedId || b.id === selectedId
+      ctx.strokeStyle = connectedToSelection ? 'rgba(218, 183, 111, .58)' : 'rgba(157, 177, 170, .3)'
+      ctx.lineWidth = Math.max(1, radius * (connectedToSelection ? .008 : .006))
+      ctx.beginPath()
+      ctx.moveTo(ax, ay)
+      ctx.lineTo(bx, by)
+      ctx.stroke()
+    })
+  }
   layout.forEach((star) => {
     const x = Math.cos(star.angle) * radius * star.radius
     const y = Math.sin(star.angle) * radius * star.radius
-    const twinkle = reducedMotion ? 1 : .82 + Math.sin(time * .002 + star.phase) * .18
+    const twinkle = reducedMotion ? 1 : .68 + Math.sin(time * .004 + star.phase) * .32
     const selected = star.id === selectedId
-    const starRadius = radius * (.018 + star.intensity * .012) * (selected ? 1.35 : 1)
+    const hovered = star.id === hoveredId
+    const starRadius = radius * (.018 + star.intensity * .012) * (selected ? 1.35 : hovered ? 1.2 : 1)
     const color = toneColor(star.tone)
     if (selected) {
       ctx.save()
-      ctx.globalAlpha = .38 + star.intensity * .16
+      ctx.globalAlpha = .52 + star.intensity * .2
       ctx.strokeStyle = color
-      ctx.lineWidth = Math.max(1.2, radius * .008)
+      ctx.lineWidth = Math.max(1.5, radius * .011)
       ctx.beginPath()
-      ctx.arc(x, y, starRadius * 2.8 + Math.sin(time * .003) * radius * .012, 0, Math.PI * 2)
+      ctx.arc(x, y, starRadius * 3.4 + Math.sin(time * .006) * radius * .024, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.globalAlpha = .15 + star.intensity * .12
+      ctx.lineWidth = Math.max(1, radius * .004)
+      ctx.beginPath()
+      ctx.moveTo(x - radius * .11, y)
+      ctx.lineTo(x + radius * .11, y)
+      ctx.moveTo(x, y - radius * .11)
+      ctx.lineTo(x, y + radius * .11)
+      ctx.stroke()
+      ctx.restore()
+    }
+    if (hovered && !selected) {
+      ctx.save()
+      ctx.globalAlpha = .34 + star.intensity * .18
+      ctx.strokeStyle = color
+      ctx.lineWidth = Math.max(1, radius * .006)
+      ctx.setLineDash([radius * .025, radius * .04])
+      ctx.beginPath()
+      ctx.arc(x, y, starRadius * 2.25 + Math.sin(time * .003) * radius * .01, 0, Math.PI * 2)
       ctx.stroke()
       ctx.restore()
     }
@@ -462,8 +556,18 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
   const stageRef = useRef<HTMLDivElement | null>(null)
   const pointerRef = useRef<{ startX: number; startY: number; startRotation: number; moved: boolean } | null>(null)
   const parallaxRef = useRef({ x: 0, y: 0 })
-  const [rotation, setRotation] = useState(0)
+  const rotationRef = useRef(0)
+  const selectedIdRef = useRef(ORBIT_STARS[0].id)
+  const hoveredIdRef = useRef('')
+  const showConnectionsRef = useRef(true)
+  const ritualModeRef = useRef(false)
+  const renderRef = useRef<((time: number) => void) | null>(null)
+  const [, setRotation] = useState(0)
   const [selectedId, setSelectedId] = useState(ORBIT_STARS[0].id)
+  const [showConnections, setShowConnections] = useState(true)
+  const [ritualMode, setRitualMode] = useState(false)
+  showConnectionsRef.current = showConnections
+  ritualModeRef.current = ritualMode
   const [daySeed] = useState(() => hashString(new Date().toISOString().slice(0, 10)))
   const layout = useMemo(() => getLayout(daySeed), [daySeed])
   const selected = layout.find((star) => star.id === selectedId) ?? layout[0]
@@ -480,7 +584,7 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
     const { radius } = metrics
     const x = clientX - rect.left - centerX
     const y = clientY - rect.top - centerY
-    const instrumentRotation = rotation + (reducedMotion ? 0 : performance.now() * .000018)
+    const instrumentRotation = rotationRef.current + (reducedMotion ? 0 : performance.now() * .00012)
     let nearest = ''
     let nearestDistance = Number.POSITIVE_INFINITY
     layout.forEach((star) => {
@@ -493,12 +597,16 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
         nearestDistance = distance
       }
     })
-    if (nearest && nearestDistance < Math.max(24, radius * .12)) setSelectedId(nearest)
+    if (nearest && nearestDistance < Math.max(24, radius * .12)) {
+      selectedIdRef.current = nearest
+      setSelectedId(nearest)
+      if (reducedMotion) renderRef.current?.(performance.now())
+    }
   }
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
-    pointerRef.current = { startX: event.clientX, startY: event.clientY, startRotation: rotation, moved: false }
+    pointerRef.current = { startX: event.clientX, startY: event.clientY, startRotation: rotationRef.current, moved: false }
   }
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -509,13 +617,38 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
     if (!pointer.moved) return
     const canvas = canvasRef.current
     if (!canvas) return
-    setRotation(pointer.startRotation + (event.clientX - pointer.startX) / canvas.getBoundingClientRect().width * Math.PI * 1.8)
+    const nextRotation = pointer.startRotation + (event.clientX - pointer.startX) / canvas.getBoundingClientRect().width * Math.PI * 1.8
+    rotationRef.current = nextRotation
+    setRotation(nextRotation)
   }
 
   const onPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!pointerRef.current?.moved) pickStar(event.clientX, event.clientY)
     pointerRef.current = null
     event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  const selectStar = (id: string) => {
+    selectedIdRef.current = id
+    setSelectedId(id)
+    if (reducedMotion) renderRef.current?.(performance.now())
+  }
+
+  const rotateBy = (delta: number) => {
+    const nextRotation = rotationRef.current + delta
+    rotationRef.current = nextRotation
+    setRotation(nextRotation)
+    if (reducedMotion) renderRef.current?.(performance.now())
+  }
+
+  const toggleConnections = () => {
+    setShowConnections((value) => !value)
+    if (reducedMotion) window.requestAnimationFrame(() => renderRef.current?.(performance.now()))
+  }
+
+  const toggleRitualMode = () => {
+    setRitualMode((value) => !value)
+    if (reducedMotion) window.requestAnimationFrame(() => renderRef.current?.(performance.now()))
   }
 
   useEffect(() => {
@@ -542,22 +675,50 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
     }
     const render = (time: number) => {
       if (disposed) return
-      drawGothicOrbit(ctx, width, height, time, reducedMotion, rotation, daySeed, selectedId, parallaxRef.current.x, parallaxRef.current.y, backgroundImage)
+      drawGothicOrbit(ctx, width, height, time, reducedMotion, rotationRef.current, daySeed, selectedIdRef.current, hoveredIdRef.current, showConnectionsRef.current, ritualModeRef.current, parallaxRef.current.x, parallaxRef.current.y, backgroundImage)
       if (!reducedMotion) frame = window.requestAnimationFrame(render)
     }
+    renderRef.current = render
     const onStagePointerMove = (event: globalThis.PointerEvent) => {
       const rect = stage.getBoundingClientRect()
       parallaxRef.current = {
         x: clamp((event.clientX - rect.left) / rect.width * 2 - 1, -1, 1),
         y: clamp((event.clientY - rect.top) / rect.height * 2 - 1, -1, 1),
       }
+      const metrics = getMetrics(width, height)
+      const centerX = metrics.centerX + parallaxRef.current.x * width * .026
+      const centerY = metrics.centerY + parallaxRef.current.y * height * .02
+      const instrumentRotation = rotationRef.current + (reducedMotion ? 0 : performance.now() * .00012)
+      const localX = event.clientX - rect.left - centerX
+      const localY = event.clientY - rect.top - centerY
+      let nearest = ''
+      let nearestDistance = Number.POSITIVE_INFINITY
+      layout.forEach((star) => {
+        const angle = star.angle + instrumentRotation
+        const starX = Math.cos(angle) * metrics.radius * star.radius
+        const starY = Math.sin(angle) * metrics.radius * star.radius
+        const distance = Math.hypot(localX - starX, localY - starY)
+        if (distance < nearestDistance) {
+          nearest = star.id
+          nearestDistance = distance
+        }
+      })
+      const nextHovered = nearestDistance < Math.max(24, metrics.radius * .12) ? nearest : ''
+      if (nextHovered !== hoveredIdRef.current) {
+        hoveredIdRef.current = nextHovered
+        stage.classList.toggle('is-hovering-star', Boolean(nextHovered))
+      }
       stage.style.setProperty('--orbit-parallax-x', parallaxRef.current.x.toFixed(3))
       stage.style.setProperty('--orbit-parallax-y', parallaxRef.current.y.toFixed(3))
+      if (reducedMotion) renderRef.current?.(performance.now())
     }
     const onStagePointerLeave = () => {
       parallaxRef.current = { x: 0, y: 0 }
+      hoveredIdRef.current = ''
+      stage.classList.remove('is-hovering-star')
       stage.style.setProperty('--orbit-parallax-x', '0')
       stage.style.setProperty('--orbit-parallax-y', '0')
+      if (reducedMotion) renderRef.current?.(performance.now())
     }
     const observer = new ResizeObserver(resize)
     observer.observe(stage)
@@ -576,8 +737,9 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
       observer.disconnect()
       stage.removeEventListener('pointermove', onStagePointerMove)
       stage.removeEventListener('pointerleave', onStagePointerLeave)
+      renderRef.current = null
     }
-  }, [daySeed, reducedMotion, rotation, selectedId])
+  }, [daySeed, reducedMotion])
 
   return (
     <main className="gothic-orbit-scene" data-scene="gothic-orbit" data-seed={daySeed} aria-labelledby="gothic-orbit-title">
@@ -616,9 +778,11 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
             <span>今日星尘 · {daySeed.toString(16).padStart(8, '0')}</span>
           </div>
           <div className="gothic-orbit-console__actions">
-            <button type="button" onClick={() => setRotation((value) => value - Math.PI / 12)} title="逆时针旋转" aria-label="逆时针旋转"><RotateCcw aria-hidden="true" /></button>
-            <button type="button" onClick={() => setRotation(0)} title="校准星盘" aria-label="校准星盘"><Crosshair aria-hidden="true" /></button>
-            <button type="button" onClick={() => setRotation((value) => value + Math.PI / 12)} title="顺时针旋转" aria-label="顺时针旋转"><RotateCw aria-hidden="true" /></button>
+            <button type="button" className={showConnections ? 'is-active' : ''} onClick={toggleConnections} title="Toggle constellation links" aria-label="Toggle constellation links" aria-pressed={showConnections}><Link2 aria-hidden="true" /></button>
+            <button type="button" className={ritualMode ? 'is-active' : ''} onClick={toggleRitualMode} title="Toggle ritual pulse" aria-label="Toggle ritual pulse" aria-pressed={ritualMode}><Zap aria-hidden="true" /></button>
+            <button type="button" onClick={() => rotateBy(-Math.PI / 12)} title="逆时针旋转" aria-label="逆时针旋转"><RotateCcw aria-hidden="true" /></button>
+            <button type="button" onClick={() => rotateBy(-rotationRef.current)} title="校准星盘" aria-label="校准星盘"><Crosshair aria-hidden="true" /></button>
+            <button type="button" onClick={() => rotateBy(Math.PI / 12)} title="顺时针旋转" aria-label="顺时针旋转"><RotateCw aria-hidden="true" /></button>
           </div>
           <p>拖曳星盘以改变观测方向，点击星点查看样本情绪。</p>
         </section>
@@ -631,7 +795,7 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
                 type="button"
                 key={star.id}
                 className={star.id === selectedId ? 'is-selected' : ''}
-                onClick={() => setSelectedId(star.id)}
+                onClick={() => selectStar(star.id)}
                 aria-pressed={star.id === selectedId}
               >
                 <i style={{ background: toneColor(star.tone) }} aria-hidden="true" />
@@ -642,8 +806,7 @@ export default function GothicOrbitScene({ reducedMotion = false }: GothicOrbitS
         </aside>
 
         <nav className="gothic-orbit-nav" aria-label="星盘台导航">
-          <button type="button" onClick={() => { window.location.hash = '#/cemetery' }}><ArrowLeft aria-hidden="true" /><span>返回墓地</span></button>
-          <button type="button" onClick={() => setSelectedId(layout[Math.floor(Math.random() * layout.length)].id)}><Dices aria-hidden="true" /><span>观测星点</span></button>
+          <button type="button" onClick={() => selectStar(layout[Math.floor(Math.random() * layout.length)].id)}><Dices aria-hidden="true" /><span>观测星点</span></button>
         </nav>
       </div>
     </main>

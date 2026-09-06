@@ -217,6 +217,7 @@
 
 .gothic-orbit-console__actions button:hover,
 .gothic-orbit-console__actions button:focus-visible,
+.gothic-orbit-console__actions button.is-active,
 .gothic-orbit-nav button:hover,
 .gothic-orbit-nav button:focus-visible,
 .gothic-orbit-stars button:hover,

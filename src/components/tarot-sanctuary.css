@@ -1,0 +1,469 @@
+.tarot-sanctuary-scene {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #eee4d4;
+  background: #09090d;
+}
+
+.tarot-sanctuary__stage {
+  --tarot-pointer-x: 0;
+  --tarot-pointer-y: 0;
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: crosshair;
+  background: #0a0a0e;
+}
+
+.tarot-sanctuary__canvas {
+  position: absolute;
+  z-index: -3;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.tarot-sanctuary__stage::before,
+.tarot-sanctuary__stage::after,
+.tarot-sanctuary__grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tarot-sanctuary__stage::before {
+  z-index: -1;
+  background: linear-gradient(110deg, rgba(5, 5, 9, .4), transparent 29%, transparent 70%, rgba(5, 4, 8, .46));
+}
+
+.tarot-sanctuary__stage::after {
+  z-index: 4;
+  background: radial-gradient(ellipse at 50% 56%, transparent 35%, rgba(1, 1, 4, .67) 100%);
+  mix-blend-mode: multiply;
+}
+
+.tarot-sanctuary__grain {
+  z-index: 3;
+  opacity: .12;
+  background-image: repeating-linear-gradient(0deg, rgba(224, 199, 161, .13) 0, rgba(224, 199, 161, .13) 1px, transparent 1px, transparent 4px);
+  mix-blend-mode: soft-light;
+}
+
+.tarot-sanctuary__header {
+  position: absolute;
+  z-index: 5;
+  top: clamp(5.8rem, 12vh, 8.4rem);
+  left: clamp(1.25rem, 6vw, 7.5rem);
+  max-width: min(35rem, 72vw);
+  text-shadow: 0 3px 20px rgba(0, 0, 0, .85);
+  pointer-events: none;
+}
+
+.tarot-sanctuary__kicker {
+  margin: 0 0 .8rem;
+  color: #cfaa70;
+  font-size: .7rem;
+  letter-spacing: .27em;
+}
+
+.tarot-sanctuary__kicker span {
+  padding-inline: .35rem;
+  color: rgba(224, 193, 145, .55);
+}
+
+.tarot-sanctuary__header h1 {
+  margin: 0;
+  color: #f1e5d1;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: clamp(2.8rem, 7vw, 7rem);
+  font-weight: 500;
+  line-height: .94;
+  letter-spacing: .12em;
+}
+
+.tarot-sanctuary__subtitle {
+  margin: .9rem 0 0;
+  color: rgba(226, 201, 164, .72);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(.68rem, 1.2vw, .93rem);
+  letter-spacing: .33em;
+}
+
+.tarot-sanctuary__caption {
+  max-width: 19rem;
+  margin: 1.3rem 0 0;
+  color: rgba(235, 221, 198, .73);
+  font-size: .82rem;
+  line-height: 1.9;
+}
+
+.tarot-sanctuary__sword-hotspot {
+  position: absolute;
+  z-index: 6;
+  top: 67%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  min-height: 2.7rem;
+  padding: .58rem .78rem;
+  border: 1px solid rgba(225, 191, 126, .58);
+  border-radius: 2px;
+  color: #f0dfbf;
+  background: rgba(16, 13, 16, .7);
+  box-shadow: 0 0 0 1px rgba(7, 6, 9, .55), 0 0 24px rgba(227, 182, 104, .13);
+  cursor: pointer;
+  font-size: .72rem;
+  letter-spacing: .14em;
+  transform: translate(-50%, -50%);
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.tarot-sanctuary__sword-hotspot::before {
+  position: absolute;
+  inset: -.38rem;
+  border: 1px solid rgba(228, 190, 121, .22);
+  border-radius: 50%;
+  content: '';
+  animation: tarot-hotspot-pulse 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.tarot-sanctuary__sword-hotspot:hover,
+.tarot-sanctuary__sword-hotspot:focus-visible {
+  border-color: rgba(255, 224, 158, .94);
+  background: rgba(99, 63, 37, .55);
+  box-shadow: 0 0 28px rgba(238, 197, 123, .28);
+  outline: none;
+}
+
+.tarot-sanctuary__sword-hotspot:active {
+  transform: translate(-50%, calc(-50% + 1px));
+}
+
+.tarot-sanctuary__sword-hotspot svg {
+  width: 1rem;
+  height: 1rem;
+  color: #f3cc88;
+}
+
+.tarot-sanctuary__oracle-panel {
+  position: absolute;
+  z-index: 7;
+  top: 22%;
+  right: clamp(1rem, 2vw, 2rem);
+  width: min(34rem, 42vw);
+  padding: .8rem;
+  border: 1px solid rgba(215, 174, 109, .38);
+  border-left: 2px solid rgba(215, 174, 109, .72);
+  background: linear-gradient(145deg, rgba(12, 10, 15, .9), rgba(14, 12, 17, .62));
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .35), inset 0 0 26px rgba(214, 170, 100, .05);
+  backdrop-filter: blur(5px);
+  transform-origin: 80% 50%;
+}
+
+.tarot-sanctuary__oracle-panel::before,
+.tarot-sanctuary__oracle-panel::after {
+  position: absolute;
+  width: .55rem;
+  height: .55rem;
+  border-color: rgba(219, 180, 115, .68);
+  content: '';
+}
+
+.tarot-sanctuary__oracle-panel::before {
+  top: -.25rem;
+  left: -.25rem;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.tarot-sanctuary__oracle-panel::after {
+  right: -.25rem;
+  bottom: -.25rem;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.tarot-sanctuary__oracle-card {
+  position: relative;
+  width: min(7.5rem, 100%);
+  margin: 0 auto;
+  aspect-ratio: 2 / 3.25;
+  perspective: 800px;
+}
+
+.tarot-sanctuary__oracle-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .7rem;
+}
+
+.tarot-sanctuary__oracle-slot {
+  min-width: 0;
+  margin: 0;
+}
+
+.tarot-sanctuary__oracle-slot figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .25rem;
+  margin: 0 auto .38rem;
+  width: min(7.5rem, 100%);
+  color: #e8d6b3;
+  font-size: .67rem;
+  letter-spacing: .12em;
+}
+
+.tarot-sanctuary__oracle-slot figcaption small {
+  color: rgba(218, 178, 113, .72);
+  font-size: .54rem;
+  letter-spacing: .08em;
+}
+
+.tarot-sanctuary__oracle-slot > p {
+  min-height: 1.2em;
+  margin: .34rem 0 0;
+  color: rgba(238, 224, 195, .8);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-align: center;
+}
+
+.tarot-sanctuary__card-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .38), 0 0 22px rgba(215, 172, 102, .08);
+  transition: transform 520ms cubic-bezier(.2, .7, .25, 1), filter 520ms ease;
+  transform-style: preserve-3d;
+}
+
+.tarot-sanctuary__oracle-panel.is-drawing .tarot-sanctuary__card-canvas {
+  filter: brightness(1.25) saturate(.72);
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+.tarot-sanctuary__oracle-copy {
+  min-width: 0;
+  margin-top: .72rem;
+}
+
+.tarot-sanctuary__oracle-kicker {
+  margin: 0 0 .45rem;
+  color: #cda769;
+  font-size: .58rem;
+  letter-spacing: .16em;
+}
+
+.tarot-sanctuary__oracle-copy h2 {
+  margin: 0;
+  color: #f0e2c9;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  font-size: 1.65rem;
+  font-weight: 500;
+  letter-spacing: .1em;
+}
+
+.tarot-sanctuary__oracle-intro {
+  margin: .6rem 0 0;
+  color: rgba(222, 204, 175, .66);
+  font-size: .74rem;
+  line-height: 1.75;
+}
+
+.tarot-sanctuary__reading-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .7rem;
+  margin-top: .65rem;
+}
+
+.tarot-sanctuary__reading-list p {
+  margin: 0;
+  color: rgba(231, 215, 183, .68);
+  font-size: .64rem;
+  line-height: 1.65;
+}
+
+.tarot-sanctuary__draw-button {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  min-height: 2.45rem;
+  border: 1px solid rgba(213, 171, 104, .48);
+  border-radius: 2px;
+  color: #eeddbb;
+  background: rgba(89, 57, 38, .32);
+  cursor: pointer;
+  font-size: .71rem;
+  letter-spacing: .14em;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.tarot-sanctuary__draw-button:hover,
+.tarot-sanctuary__draw-button:focus-visible {
+  border-color: rgba(255, 220, 148, .92);
+  color: #fff0cf;
+  background: rgba(124, 79, 42, .52);
+  outline: none;
+}
+
+.tarot-sanctuary__draw-button:active {
+  transform: translateY(1px);
+}
+
+.tarot-sanctuary__draw-button:disabled {
+  cursor: wait;
+  opacity: .58;
+}
+
+.tarot-sanctuary__draw-button svg {
+  width: .95rem;
+  height: .95rem;
+}
+
+.tarot-sanctuary__status {
+  position: absolute;
+  z-index: 5;
+  right: clamp(1.2rem, 6vw, 7rem);
+  bottom: 14%;
+  max-width: 16rem;
+  margin: 0;
+  color: rgba(236, 217, 184, .72);
+  font-size: .76rem;
+  letter-spacing: .1em;
+  line-height: 1.8;
+  text-align: right;
+  text-shadow: 0 2px 12px #040407;
+}
+
+.tarot-sanctuary__hint {
+  position: absolute;
+  z-index: 5;
+  right: clamp(1.2rem, 6vw, 7rem);
+  bottom: 8.5%;
+  margin: 0;
+  color: rgba(209, 190, 160, .42);
+  font-size: .64rem;
+  letter-spacing: .12em;
+}
+
+@keyframes tarot-hotspot-pulse {
+  0%, 100% { opacity: .22; transform: scale(.92); }
+  50% { opacity: .7; transform: scale(1.08); }
+}
+
+@media (max-width: 700px) {
+  .tarot-sanctuary__header {
+    top: 6rem;
+    left: 1.1rem;
+    max-width: calc(100vw - 2.2rem);
+  }
+
+  .tarot-sanctuary__caption {
+    max-width: 15rem;
+    margin-top: 1rem;
+    font-size: .75rem;
+  }
+
+  .tarot-sanctuary__sword-hotspot {
+    top: 56%;
+  }
+
+  .tarot-sanctuary__oracle-panel {
+    top: auto;
+    right: 1rem;
+    bottom: 7.5%;
+    width: min(21.5rem, calc(100vw - 2rem));
+    padding: .55rem;
+  }
+
+  .tarot-sanctuary__oracle-cards {
+    gap: .38rem;
+  }
+
+  .tarot-sanctuary__oracle-card {
+    width: min(4.65rem, 100%);
+  }
+
+  .tarot-sanctuary__oracle-slot figcaption {
+    width: min(4.65rem, 100%);
+    margin-bottom: .23rem;
+    font-size: .54rem;
+  }
+
+  .tarot-sanctuary__oracle-slot figcaption small {
+    font-size: .43rem;
+  }
+
+  .tarot-sanctuary__oracle-slot > p {
+    font-size: .55rem;
+  }
+
+  .tarot-sanctuary__oracle-copy {
+    margin-top: .45rem;
+  }
+
+  .tarot-sanctuary__oracle-kicker {
+    margin-bottom: .25rem;
+    font-size: .47rem;
+  }
+
+  .tarot-sanctuary__oracle-copy h2 {
+    font-size: 1.15rem;
+  }
+
+  .tarot-sanctuary__oracle-intro {
+    margin-top: .3rem;
+    font-size: .62rem;
+    line-height: 1.45;
+  }
+
+  .tarot-sanctuary__reading-list {
+    gap: .38rem;
+    margin-top: .4rem;
+  }
+
+  .tarot-sanctuary__reading-list p {
+    font-size: .5rem;
+    line-height: 1.45;
+  }
+
+  .tarot-sanctuary__draw-button {
+    min-height: 2.15rem;
+    font-size: .62rem;
+  }
+
+  .tarot-sanctuary__status,
+  .tarot-sanctuary__hint {
+    right: 1.1rem;
+  }
+
+  .tarot-sanctuary__status {
+    bottom: 13%;
+    max-width: 12rem;
+    font-size: .68rem;
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1050px) {
+  .tarot-sanctuary__oracle-panel {
+    right: 1rem;
+    width: min(31rem, 40vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarot-sanctuary__sword-hotspot::before {
+    animation: none;
+  }
+}

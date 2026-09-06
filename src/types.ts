@@ -1,4 +1,4 @@
-export type SceneId = 'cemetery' | 'library' | 'clocktower' | 'saint-relic' | 'bone-garden' | 'rookery' | 'rose-ash' | 'gothic-orbit' | 'winter-bell' | 'unavailable'
+export type SceneId = 'cemetery' | 'library' | 'tarot' | 'clocktower' | 'saint-relic' | 'bone-garden' | 'rookery' | 'rose-ash' | 'gothic-orbit' | 'winter-bell' | 'unavailable'
 
 export type SceneRoute = {
   id: SceneId
@@ -15,6 +15,7 @@ export type AudioState = {
 export const SCENE_ROUTES: readonly SceneRoute[] = [
   { id: 'cemetery', label: '利德尔墓地', hash: '#/cemetery', available: true },
   { id: 'library', label: '图书馆之梦', hash: '#/library', available: true },
+  { id: 'tarot', label: '塔罗圣堂', hash: '#/tarot', available: true },
   { id: 'clocktower', label: '钟楼回响', hash: '#/clocktower', available: true },
   { id: 'saint-relic', label: '圣遗物室', hash: '#/saint-relic', available: true },
   { id: 'bone-garden', label: '骨园', hash: '#/bone-garden', available: true },

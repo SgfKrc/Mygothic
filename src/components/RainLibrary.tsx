@@ -15,6 +15,7 @@ export type RainLibraryProps = {
   onFireToggle?: (enabled: boolean) => void
   onAmbientCue?: (cue: RainLibraryCue) => void
   onBookOpen?: (poem: string, index: number) => void
+  onTarotOpen?: () => void
   className?: string
 }
 
@@ -441,14 +442,30 @@ const drawPortraitFrame = (
   ctx.restore()
 }
 
-const drawInteriorBackLayer = (ctx: CanvasRenderingContext2D, width: number, height: number, cameraX: number) => {
+const drawInteriorBackLayer = (ctx: CanvasRenderingContext2D, width: number, height: number, cameraX: number, cameraY: number) => {
   ctx.save()
   // The rear wall is the slowest plane, so it visibly lags behind the camera.
-  ctx.translate(cameraX * 0.58, 0)
+  ctx.translate(cameraX * 0.58, cameraY * 0.58)
   const worldLeft = -width * 0.4
   const worldRight = width * 1.52
-  ctx.fillStyle = 'rgba(8, 7, 12, .24)'
+  ctx.fillStyle = 'rgba(8, 7, 12, .42)'
   ctx.fillRect(worldLeft, height * 0.17, worldRight - worldLeft, height * 0.54)
+  // Filled pier bodies and capitals give the rear arcade a physical mass;
+  // the old single-pixel uprights made the wall read as a wireframe.
+  for (let column = 0; column < 12; column += 1) {
+    const x = worldLeft + width * (0.06 + column * 0.16)
+    const pierW = width * (0.024 + (column % 3) * 0.004)
+    const pier = ctx.createLinearGradient(x - pierW, 0, x + pierW, 0)
+    pier.addColorStop(0, 'rgba(21, 17, 25, .92)')
+    pier.addColorStop(0.46, 'rgba(99, 69, 68, .54)')
+    pier.addColorStop(0.64, 'rgba(55, 42, 50, .7)')
+    pier.addColorStop(1, 'rgba(10, 9, 15, .94)')
+    ctx.fillStyle = pier
+    ctx.fillRect(x - pierW / 2, height * 0.2, pierW, height * 0.5)
+    ctx.fillStyle = 'rgba(174, 132, 100, .24)'
+    ctx.fillRect(x - pierW * 0.82, height * 0.19, pierW * 1.64, height * 0.022)
+    ctx.fillRect(x - pierW * 0.66, height * 0.695, pierW * 1.32, height * 0.018)
+  }
   ctx.strokeStyle = 'rgba(180, 143, 117, .13)'
   ctx.lineWidth = Math.max(1, width * 0.0012)
   for (let column = 0; column < 12; column += 1) {
@@ -471,6 +488,16 @@ const drawInteriorBackLayer = (ctx: CanvasRenderingContext2D, width: number, hei
     const x = worldLeft + width * (0.02 + arch * 0.22)
     const archW = width * 0.16
     const archY = height * 0.7
+    ctx.strokeStyle = 'rgba(104, 75, 75, .34)'
+    ctx.lineWidth = Math.max(5, width * 0.012)
+    ctx.beginPath()
+    ctx.moveTo(x, archY)
+    ctx.lineTo(x, height * 0.34)
+    ctx.quadraticCurveTo(x + archW * 0.5, height * 0.17, x + archW, height * 0.34)
+    ctx.lineTo(x + archW, archY)
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(218, 174, 123, .12)'
+    ctx.lineWidth = Math.max(1, width * 0.002)
     ctx.beginPath()
     ctx.moveTo(x, archY)
     ctx.lineTo(x, height * 0.34)
@@ -843,10 +870,10 @@ const drawReadingChair = (ctx: CanvasRenderingContext2D, x: number, baseY: numbe
   ctx.restore()
 }
 
-const drawForegroundPillars = (ctx: CanvasRenderingContext2D, width: number, height: number, cameraX: number, fireActive: boolean) => {
+const drawForegroundPillars = (ctx: CanvasRenderingContext2D, width: number, height: number, cameraX: number, cameraY: number, fireActive: boolean) => {
   ctx.save()
   // The stone columns are close to the viewer and should track the camera most.
-  ctx.translate(cameraX * 0.06, 0)
+  ctx.translate(cameraX * 0.06, cameraY * 0.06)
   for (const x of [-width * 0.035, width * 0.96]) {
     const pillarW = width * 0.048
     const top = height * 0.12
@@ -890,6 +917,7 @@ const drawGalleryExtension = (
   portraitVisible: boolean,
   portraitObscured: boolean,
   cameraX: number,
+  cameraY: number,
 ) => {
   const start = width * 0.98
   const panelWidth = width * 0.46
@@ -898,7 +926,7 @@ const drawGalleryExtension = (
   const leftWidth = width * 0.4
   // The side door belongs to a deeper corridor plane than the main room.
   ctx.save()
-  ctx.translate(cameraX * 0.34, 0)
+  ctx.translate(cameraX * 0.34, cameraY * 0.34)
   const leftWall = ctx.createLinearGradient(leftStart, 0, 0, height)
   leftWall.addColorStop(0, '#17131c')
   leftWall.addColorStop(0.52, '#2b2028')
@@ -1062,6 +1090,108 @@ const drawGalleryExtension = (
   ctx.restore()
 }
 
+const drawPerspectiveSideWalls = (ctx: CanvasRenderingContext2D, width: number, height: number, cameraX: number, cameraY: number) => {
+  const vanishingX = width * 0.5
+  const vanishingY = height * 0.69
+  const wallTop = height * 0.12
+  const worldLeft = -width * 0.4
+  const worldRight = width * 1.52
+  const windowLeft = width * 0.045
+  const windowRight = width * 0.663
+
+  ctx.save()
+  ctx.translate(cameraX * 0.36, cameraY * 0.36)
+
+  // One overhead vault spans the whole world width. The center window is
+  // painted over it later, so its ribs remain visible only at the sides and
+  // above the opening, visually tying the side walls to the central chamber.
+  ctx.fillStyle = 'rgba(7, 8, 13, .54)'
+  ctx.beginPath()
+  ctx.moveTo(worldLeft, -height * .34)
+  ctx.lineTo(worldRight, -height * .34)
+  ctx.lineTo(worldRight, wallTop)
+  ctx.lineTo(vanishingX, vanishingY)
+  ctx.lineTo(worldLeft, wallTop)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(202, 158, 112, .16)'
+  ctx.lineWidth = Math.max(1, width * .0014)
+  for (let rib = 0; rib < 9; rib += 1) {
+    const topX = worldLeft + (worldRight - worldLeft) * (rib + 1) / 10
+    ctx.beginPath()
+    ctx.moveTo(topX, -height * .34)
+    ctx.lineTo(vanishingX, vanishingY)
+    ctx.stroke()
+  }
+
+  // The side walls are clipped outside the window opening and converge toward
+  // the same vanishing point as the floor, joining both halves of the room.
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(worldLeft, 0, windowLeft - worldLeft, height)
+  ctx.clip()
+  const leftWall = ctx.createLinearGradient(worldLeft, 0, windowLeft, 0)
+  leftWall.addColorStop(0, 'rgba(8, 8, 13, .9)')
+  leftWall.addColorStop(.7, 'rgba(50, 34, 39, .6)')
+  leftWall.addColorStop(1, 'rgba(32, 23, 29, .52)')
+  ctx.fillStyle = leftWall
+  ctx.beginPath()
+  ctx.moveTo(worldLeft, wallTop)
+  ctx.lineTo(windowLeft, wallTop)
+  ctx.lineTo(vanishingX, vanishingY)
+  ctx.lineTo(worldLeft, vanishingY)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(200, 156, 111, .2)'
+  ctx.lineWidth = Math.max(1, width * .0012)
+  for (let beam = 0; beam < 6; beam += 1) {
+    const topX = worldLeft + (windowLeft - worldLeft) * (beam + 1) / 7
+    ctx.beginPath()
+    ctx.moveTo(topX, wallTop)
+    ctx.lineTo(vanishingX, vanishingY)
+    ctx.stroke()
+  }
+  ctx.restore()
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(windowRight, 0, worldRight - windowRight, height)
+  ctx.clip()
+  const rightWall = ctx.createLinearGradient(windowRight, 0, worldRight, 0)
+  rightWall.addColorStop(0, 'rgba(43, 30, 36, .52)')
+  rightWall.addColorStop(.35, 'rgba(52, 34, 39, .7)')
+  rightWall.addColorStop(1, 'rgba(9, 8, 13, .94)')
+  ctx.fillStyle = rightWall
+  ctx.beginPath()
+  ctx.moveTo(windowRight, wallTop)
+  ctx.lineTo(worldRight, wallTop)
+  ctx.lineTo(worldRight, vanishingY)
+  ctx.lineTo(vanishingX, vanishingY)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(205, 160, 112, .2)'
+  ctx.lineWidth = Math.max(1, width * .0012)
+  for (let beam = 0; beam < 7; beam += 1) {
+    const topX = windowRight + (worldRight - windowRight) * (beam + 1) / 8
+    ctx.beginPath()
+    ctx.moveTo(topX, wallTop)
+    ctx.lineTo(vanishingX, vanishingY)
+    ctx.stroke()
+  }
+  ctx.restore()
+
+  // Low dado rails reinforce the shared horizon and make the side walls feel
+  // attached to the floor rather than floating behind the furniture.
+  ctx.strokeStyle = 'rgba(211, 169, 116, .26)'
+  ctx.lineWidth = Math.max(2, width * .0025)
+  ctx.beginPath()
+  ctx.moveTo(worldLeft, vanishingY)
+  ctx.lineTo(vanishingX, vanishingY)
+  ctx.lineTo(worldRight, vanishingY)
+  ctx.stroke()
+  ctx.restore()
+}
+
 const drawBook = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, hue: number, tilt = 0) => {
   ctx.save()
   ctx.translate(x, y)
@@ -1202,26 +1332,28 @@ const drawWindowArchitecture = (
   wh: number,
   backdrop: HTMLImageElement | null,
   cameraX: number,
+  cameraY: number,
 ) => {
   ctx.save()
   ctx.beginPath()
   ctx.rect(wx + 5, wy + 5, ww - 10, wh - 10)
   ctx.clip()
   ctx.save()
-  ctx.translate(cameraX * 0.62, 0)
+  ctx.translate(cameraX * 0.62, cameraY * 0.62)
 
   // Overscan the moving plate so the window never exposes an unpainted strip at either edge.
   const backdropOverflow = Math.abs(cameraX) * 0.62 + ww * 0.04
+  const backdropOverflowY = Math.abs(cameraY) * 0.62 + wh * 0.04
   const backdropX = wx + 5 - backdropOverflow
   const backdropWidth = ww - 10 + backdropOverflow * 2
-  if (backdrop) drawCoverImage(ctx, backdrop, backdropX, wy + 5, backdropWidth, wh - 10, 0.78)
+  if (backdrop) drawCoverImage(ctx, backdrop, backdropX, wy + 5 - backdropOverflowY, backdropWidth, wh - 10 + backdropOverflowY * 2, 0.78)
 
   const windowSky = ctx.createLinearGradient(wx - backdropOverflow, wy, wx + ww + backdropOverflow, wy + wh)
   windowSky.addColorStop(0, 'rgba(18, 35, 58, .3)')
   windowSky.addColorStop(0.5, 'rgba(29, 39, 54, .16)')
   windowSky.addColorStop(1, 'rgba(25, 18, 28, .42)')
   ctx.fillStyle = windowSky
-  ctx.fillRect(wx - backdropOverflow, wy, ww + backdropOverflow * 2, wh)
+  ctx.fillRect(wx - backdropOverflow, wy - backdropOverflowY, ww + backdropOverflow * 2, wh + backdropOverflowY * 2)
 
   // Small stars and cloud strokes add depth without flattening the supplied background plate.
   ctx.fillStyle = 'rgba(218, 208, 181, .52)'
@@ -1247,7 +1379,7 @@ const drawWindowArchitecture = (
   // The lowest masonry deck is drawn first so every spire has a continuous landing.
   ctx.restore()
   ctx.save()
-  ctx.translate(cameraX * 0.54, 0)
+  ctx.translate(cameraX * 0.54, cameraY * 0.54)
   const farBase = wy + wh * 0.77
   const farBottom = wy + wh * 0.94
   ctx.fillStyle = 'rgba(5, 9, 17, .82)'
@@ -1376,7 +1508,7 @@ const drawWindowArchitecture = (
   // A middle terrace adds a second readable depth plane without introducing roofs.
   ctx.restore()
   ctx.save()
-  ctx.translate(cameraX * 0.3, 0)
+  ctx.translate(cameraX * 0.3, cameraY * 0.3)
   const middleBase = wy + wh * 0.88
   for (let index = 0; index < 5; index += 1) {
     const center = wx + ww * (-0.08 + index * 0.27)
@@ -1534,6 +1666,7 @@ function drawLibrary(
   lampActive: boolean,
   chandelierActive: boolean,
   cameraX: number,
+  cameraY: number,
   rainActive: boolean,
   fireActive: boolean,
   reducedMotion: boolean,
@@ -1541,7 +1674,7 @@ function drawLibrary(
   const t = reducedMotion ? 0 : time / 1000
   ctx.clearRect(0, 0, width, height)
   ctx.save()
-  ctx.translate(-cameraX, 0)
+  ctx.translate(-cameraX, -cameraY)
 
   const worldLeft = -width * 0.4
   const worldWidth = width * 1.9
@@ -1551,7 +1684,8 @@ function drawLibrary(
   wall.addColorStop(0.72, '#28151a')
   wall.addColorStop(1, '#0b090c')
   ctx.fillStyle = wall
-  ctx.fillRect(worldLeft, 0, worldWidth, height)
+  const verticalOverscan = height * 0.34
+  ctx.fillRect(worldLeft, -verticalOverscan, worldWidth, height + verticalOverscan * 2)
 
   // Keep the room opaque. The local cathedral plate is composited only inside the window below.
   const distantWash = ctx.createLinearGradient(0, 0, 0, height)
@@ -1559,10 +1693,11 @@ function drawLibrary(
   distantWash.addColorStop(0.58, 'rgba(17, 18, 28, .18)')
   distantWash.addColorStop(1, 'rgba(9, 8, 14, .72)')
   ctx.fillStyle = distantWash
-  ctx.fillRect(worldLeft, 0, worldWidth, height)
+  ctx.fillRect(worldLeft, -verticalOverscan, worldWidth, height + verticalOverscan * 2)
 
   // Rear wall architecture drifts only slightly with the camera, establishing the first interior depth plane.
-  drawInteriorBackLayer(ctx, width, height, cameraX)
+  drawInteriorBackLayer(ctx, width, height, cameraX, cameraY)
+  drawPerspectiveSideWalls(ctx, width, height, cameraX, cameraY)
 
   // Stained plaster texture and a restrained amber wash from the hearth.
   ctx.save()
@@ -1629,7 +1764,7 @@ function drawLibrary(
   ctx.shadowBlur = 0
 
   // The clipped window receives the detailed local backdrop and a layered cathedral silhouette.
-  drawWindowArchitecture(ctx, wx, wy, ww, wh, backdrop, cameraX)
+  drawWindowArchitecture(ctx, wx, wy, ww, wh, backdrop, cameraX, cameraY)
 
   ctx.strokeStyle = '#574a50'
   ctx.lineWidth = Math.max(4, width * 0.007)
@@ -1677,8 +1812,95 @@ function drawLibrary(
   }
   ctx.restore()
 
+  // A solid lower wall and a single perspective floor plane establish the
+  // room's depth before any furniture is painted. Keeping the plane behind
+  // the props prevents plank seams from cutting through legs and hearths.
+  ctx.save()
+  ctx.translate(cameraX * 0.1, cameraY * 0.1)
+  const lowerWallTop = height * 0.69
+  const floorHorizon = height * 0.775
+  const lowerWall = ctx.createLinearGradient(0, lowerWallTop, 0, floorHorizon)
+  lowerWall.addColorStop(0, '#2a222c')
+  lowerWall.addColorStop(0.48, '#221a23')
+  lowerWall.addColorStop(1, '#151118')
+  ctx.fillStyle = lowerWall
+  ctx.fillRect(worldLeft, lowerWallTop, worldWidth, floorHorizon - lowerWallTop)
+  ctx.fillStyle = 'rgba(174, 131, 101, .15)'
+  ctx.fillRect(worldLeft, lowerWallTop, worldWidth, Math.max(3, height * 0.009))
+  ctx.fillStyle = 'rgba(10, 8, 13, .42)'
+  ctx.fillRect(worldLeft, floorHorizon - height * 0.014, worldWidth, height * 0.014)
+  ctx.strokeStyle = 'rgba(193, 151, 111, .22)'
+  ctx.lineWidth = Math.max(1, width * 0.0012)
+  for (let panel = 0; panel < 10; panel += 1) {
+    const panelX = worldLeft + worldWidth * (0.035 + panel * 0.105)
+    ctx.beginPath()
+    ctx.moveTo(panelX, lowerWallTop + height * 0.015)
+    ctx.lineTo(panelX + worldWidth * 0.018, floorHorizon - height * 0.018)
+    ctx.stroke()
+  }
+
+  const sceneBottom = height + verticalOverscan
+  const floor = ctx.createLinearGradient(0, floorHorizon, 0, sceneBottom)
+  floor.addColorStop(0, '#34232a')
+  floor.addColorStop(0.34, '#271b23')
+  floor.addColorStop(1, '#110d15')
+  ctx.fillStyle = floor
+  ctx.beginPath()
+  ctx.moveTo(worldLeft, floorHorizon)
+  ctx.lineTo(worldLeft + worldWidth, floorHorizon)
+  ctx.lineTo(worldLeft + worldWidth * 1.08, sceneBottom)
+  ctx.lineTo(worldLeft - worldWidth * 0.08, sceneBottom)
+  ctx.closePath()
+  ctx.fill()
+
+  // Broad board faces read as wood grain without turning the floor into a
+  // field of intersecting line-art strokes.
+  for (let plank = 0; plank < 10; plank += 1) {
+    const nearY = floorHorizon + (sceneBottom - floorHorizon) * (plank + 1) / 10
+    const farY = floorHorizon + (sceneBottom - floorHorizon) * plank / 10
+    const inset = (nearY - floorHorizon) * 0.13
+    ctx.fillStyle = plank % 2 === 0 ? 'rgba(105, 65, 62, .18)' : 'rgba(51, 35, 43, .22)'
+    ctx.beginPath()
+    ctx.moveTo(worldLeft + inset, farY)
+    ctx.lineTo(worldLeft + worldWidth - inset, farY)
+    ctx.lineTo(worldLeft + worldWidth - inset * 1.12, nearY)
+    ctx.lineTo(worldLeft + inset * 1.12, nearY)
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.strokeStyle = fireActive ? 'rgba(181, 111, 77, .24)' : 'rgba(135, 91, 84, .2)'
+  ctx.lineWidth = Math.max(1, width * 0.0011)
+  for (let seam = 0; seam <= 10; seam += 1) {
+    const progress = seam / 10
+    const y = floorHorizon + (sceneBottom - floorHorizon) * progress
+    const inset = (y - floorHorizon) * 0.13
+    ctx.beginPath()
+    ctx.moveTo(worldLeft + inset, y)
+    ctx.lineTo(worldLeft + worldWidth - inset, y + height * 0.003)
+    ctx.stroke()
+  }
+  ctx.strokeStyle = 'rgba(173, 107, 78, .17)'
+  ctx.lineWidth = Math.max(0.8, width * 0.0009)
+  for (let board = 0; board < 13; board += 1) {
+    const x = worldLeft + worldWidth * (board / 12)
+    ctx.beginPath()
+    ctx.moveTo(x, floorHorizon)
+    ctx.lineTo(x + (x - width * 0.5) * 0.18, sceneBottom)
+    ctx.stroke()
+  }
+
+  // The rug is part of the floor plane, so chair and table shadows remain on
+  // top of it instead of appearing to sink below its edge.
+  ctx.globalAlpha = 0.7
+  ctx.fillStyle = '#321d23'
+  ctx.beginPath()
+  ctx.ellipse(width * 0.58, height * 0.925, width * 0.4, height * 0.105, -0.03, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.globalAlpha = 1
+  ctx.restore()
+
   // Near columns frame the room and move faster than the rear wall, making the central chamber feel deep.
-  drawForegroundPillars(ctx, width, height, cameraX, fireActive)
+  drawForegroundPillars(ctx, width, height, cameraX, cameraY, fireActive)
 
   // The shelf wall recedes to the right so the window remains the dominant 61.8% plane.
   const sx = width * 0.72
@@ -1686,7 +1908,7 @@ function drawLibrary(
   const sw = width * 0.22
   const sh = height * 0.48
   ctx.save()
-  ctx.translate(cameraX * 0.18, 0)
+  ctx.translate(cameraX * 0.18, cameraY * 0.18)
   ctx.fillStyle = '#120d12'
   ctx.shadowColor = 'rgba(0, 0, 0, .7)'
   ctx.shadowBlur = 22
@@ -1779,7 +2001,7 @@ function drawLibrary(
 
   // A small brass wall clock gives the room a quiet focal point.
   ctx.save()
-  ctx.translate(cameraX * 0.18, 0)
+  ctx.translate(cameraX * 0.18, cameraY * 0.18)
   const clockX = width * 0.69
   const clockY = height * 0.2
   const clockR = Math.max(22, width * 0.026)
@@ -1828,7 +2050,7 @@ function drawLibrary(
   const fh = height * 0.27
   ctx.save()
   // The hearth is a near architectural anchor, ahead of the stool's middle plane.
-  ctx.translate(cameraX * 0.03, 0)
+  ctx.translate(cameraX * 0.03, cameraY * 0.03)
   const stone = ctx.createLinearGradient(fx, fy, fx + fw, fy + fh)
   stone.addColorStop(0, fireActive ? '#68423d' : '#4a3437')
   stone.addColorStop(0.52, fireActive ? '#3f2c31' : '#2f252d')
@@ -1836,6 +2058,20 @@ function drawLibrary(
   ctx.fillStyle = stone
   drawRoundedRect(ctx, fx, fy, fw, fh, 5)
   ctx.fill()
+  // Individual ashlar blocks break up the flat silhouette while preserving
+  // the dark opening. Their staggered fills create depth without hatch-lines.
+  for (let row = 0; row < 4; row += 1) {
+    const rowY = fy + fh * (0.08 + row * 0.2)
+    const blockH = fh * 0.15
+    for (let block = 0; block < 5; block += 1) {
+      const blockX = fx + fw * (0.035 + block * 0.205 + (row % 2) * 0.026)
+      const blockW = fw * (0.17 + ((block + row) % 2) * 0.025)
+      ctx.fillStyle = (block + row) % 3 === 0
+        ? 'rgba(182, 127, 92, .18)'
+        : 'rgba(18, 14, 21, .18)'
+      ctx.fillRect(blockX, rowY, blockW, blockH)
+    }
+  }
   ctx.strokeStyle = '#755b59'
   ctx.lineWidth = Math.max(2, width * 0.003)
   ctx.stroke()
@@ -1852,6 +2088,18 @@ function drawLibrary(
   ctx.lineTo(fx + fw * 0.88, fy + fh)
   ctx.closePath()
   ctx.fill()
+  // A projecting hearth slab anchors the fireplace to the new floor plane.
+  ctx.fillStyle = fireActive ? '#70473f' : '#4e393b'
+  ctx.beginPath()
+  ctx.moveTo(fx - fw * 0.08, fy + fh * 0.92)
+  ctx.lineTo(fx + fw * 1.08, fy + fh * 0.92)
+  ctx.lineTo(fx + fw * 0.98, fy + fh * 1.06)
+  ctx.lineTo(fx + fw * 0.02, fy + fh * 1.06)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(214, 163, 115, .42)'
+  ctx.lineWidth = Math.max(1, width * 0.0015)
+  ctx.stroke()
   ctx.strokeStyle = fireActive ? 'rgba(219, 163, 113, .48)' : 'rgba(169, 130, 102, .32)'
   ctx.lineWidth = Math.max(1, width * 0.0015)
   for (let i = 0; i < 12; i += 1) {
@@ -1896,7 +2144,7 @@ function drawLibrary(
 
   // Desk, a brass inkwell and the clickable book.
   ctx.save()
-  ctx.translate(cameraX * 0.1, 0)
+  ctx.translate(cameraX * 0.1, cameraY * 0.1)
   drawReadingChair(ctx, width * 0.66, height * 0.94, width * 0.16, height * 0.25)
   ctx.restore()
   const dx = width * 0.46
@@ -1962,60 +2210,21 @@ function drawLibrary(
   ctx.restore()
 
   // The room continues into a side gallery; the portrait is deliberately beyond the initial camera.
-  drawGalleryExtension(ctx, width, height, portrait, portraitName, portraitVisible, portraitObscured, cameraX)
+  drawGalleryExtension(ctx, width, height, portrait, portraitName, portraitVisible, portraitObscured, cameraX, cameraY)
 
   // The left chandelier hangs in a deeper corridor plane than the statue and furniture.
   ctx.save()
-  ctx.translate(cameraX * 0.42, 0)
+  ctx.translate(cameraX * 0.42, cameraY * 0.42)
   drawChandelier(ctx, -width * 0.14, height * 0.1, width * 0.052, t, chandelierActive)
   ctx.restore()
 
   // Side furnishings sit between the rear wall and the foreground floor, so their drift reads as a separate plane.
   ctx.save()
-  ctx.translate(cameraX * 0.12, 0)
+  ctx.translate(cameraX * 0.12, cameraY * 0.12)
   drawSculpture(ctx, -width * 0.3, height * 0.84, width * 0.105, t)
   drawSideTable(ctx, width * 0.4, height * 0.84, width * 0.13, height * 0.13)
   drawVintageLamp(ctx, width * 1.31, height * 0.84, width * 0.075, t, lampActive)
   drawSideTable(ctx, width * 1.31, height * 0.84, width * 0.19, height * 0.12)
-  ctx.restore()
-
-  // Foreground floorboards and rug give the lower room a readable material break.
-  ctx.save()
-  ctx.translate(cameraX * 0.02, 0)
-  ctx.strokeStyle = fireActive ? 'rgba(170, 105, 75, .34)' : 'rgba(121, 83, 77, .24)'
-  ctx.lineWidth = Math.max(1, width * 0.0012)
-  for (let plank = 0; plank < 9; plank += 1) {
-    const plankY = height * (0.79 + plank * 0.026)
-    ctx.beginPath()
-    ctx.moveTo(-width * 0.4, plankY)
-    ctx.lineTo(width * 1.48, plankY + height * 0.012)
-    ctx.stroke()
-
-    // Short staggered joints turn the parallel lines into individual boards.
-    ctx.strokeStyle = fireActive ? 'rgba(203, 133, 85, .24)' : 'rgba(154, 108, 92, .2)'
-    ctx.lineWidth = Math.max(0.8, width * 0.001)
-    const stagger = plank % 2 === 0 ? 0 : 0.52
-    for (let joint = 0; joint < 9; joint += 1) {
-      const jointX = -width * 0.4 + (((joint + stagger) % 9) / 9) * width * 1.88
-      ctx.beginPath()
-      ctx.moveTo(jointX, plankY + height * 0.003)
-      ctx.lineTo(jointX + width * 0.008, plankY + height * 0.022)
-      ctx.stroke()
-    }
-    ctx.strokeStyle = fireActive ? 'rgba(170, 105, 75, .34)' : 'rgba(121, 83, 77, .24)'
-    ctx.lineWidth = Math.max(1, width * 0.0012)
-  }
-  ctx.restore()
-
-  // Foreground rug and ink-dark vignette.
-  ctx.save()
-  ctx.translate(cameraX * 0.01, 0)
-  ctx.globalAlpha = 0.48
-  ctx.fillStyle = '#321d23'
-  ctx.beginPath()
-  ctx.ellipse(width * 0.58, height * 0.96, width * 0.42, height * 0.12, -0.03, 0, Math.PI * 2)
-  ctx.fill()
-  // Keep the rug soft-edged; hard perspective spokes are intentionally omitted.
   ctx.restore()
 
   ctx.restore()
@@ -2035,6 +2244,7 @@ export default function RainLibrary({
   onFireToggle,
   onAmbientCue,
   onBookOpen,
+  onTarotOpen,
   className = '',
 }: RainLibraryProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -2052,6 +2262,7 @@ export default function RainLibrary({
   const frameRef = useRef<number | null>(null)
   const noticeTimer = useRef<number | null>(null)
   const cameraPosition = useRef(0)
+  const cameraYPosition = useRef(0)
 
   const rainActive = rainEnabled ?? localRain
   const fireActive = fireEnabled ?? localFire
@@ -2114,8 +2325,11 @@ export default function RainLibrary({
     let backdrop: HTMLImageElement | null = null
     let portrait: HTMLCanvasElement | null = null
     let cameraX = cameraPosition.current
+    let cameraY = cameraYPosition.current
     let dragStartX = 0
+    let dragStartY = 0
     let dragStartCamera = 0
+    let dragStartCameraY = 0
     let dragging = false
     const random = seededRandom(0x4c494252)
     const rain: RainDrop[] = Array.from({ length: 120 }, () => ({
@@ -2159,6 +2373,7 @@ export default function RainLibrary({
       portraitState.lampActive,
       chandelierActive,
       cameraX,
+      cameraY,
       rainActive,
       fireActive,
       reducedMotion,
@@ -2169,12 +2384,16 @@ export default function RainLibrary({
       stage.style.setProperty('--library-hotspot-fire-shift', `${cameraX * 0.03}px`)
       stage.style.setProperty('--library-hotspot-door-shift', `${cameraX * 0.34}px`)
       stage.style.setProperty('--library-hotspot-chandelier-shift', `${cameraX * 0.42}px`)
+      stage.style.setProperty('--library-camera-y', `${cameraY}px`)
     }
 
-    const updateCamera = (nextCamera: number) => {
+    const updateCamera = (nextCamera: number, nextCameraY = cameraY) => {
       cameraX = clamp(nextCamera, -width * 0.36, width * 0.44)
+      cameraY = clamp(nextCameraY, -height * 0.18, height * 0.18)
       cameraPosition.current = cameraX
+      cameraYPosition.current = cameraY
       stage.style.setProperty('--library-camera-x', `${cameraX}px`)
+      stage.style.setProperty('--library-camera-y', `${cameraY}px`)
       updateHotspotParallax()
       drawFrame()
     }
@@ -2199,8 +2418,11 @@ export default function RainLibrary({
       width = nextWidth
       height = nextHeight
       cameraX = clamp(cameraX, -width * 0.36, width * 0.44)
+      cameraY = clamp(cameraY, -height * 0.18, height * 0.18)
       cameraPosition.current = cameraX
+      cameraYPosition.current = cameraY
       stage.style.setProperty('--library-camera-x', `${cameraX}px`)
+      stage.style.setProperty('--library-camera-y', `${cameraY}px`)
       updateHotspotParallax()
       previousWidth = width
       previousHeight = height
@@ -2234,6 +2456,7 @@ export default function RainLibrary({
         portraitState.lampActive,
         chandelierActive,
         cameraX,
+        cameraY,
         rainActive,
         fireActive,
         reducedMotion,
@@ -2245,13 +2468,18 @@ export default function RainLibrary({
       if ((event.target as HTMLElement | null)?.closest('button')) return
       dragging = true
       dragStartX = event.clientX
+      dragStartY = event.clientY
       dragStartCamera = cameraX
+      dragStartCameraY = cameraY
       stage.classList.add('is-panning')
       stage.setPointerCapture?.(event.pointerId)
     }
     const onPointerMove = (event: PointerEvent) => {
       if (!dragging) return
-      updateCamera(dragStartCamera - (event.clientX - dragStartX))
+      updateCamera(
+        dragStartCamera - (event.clientX - dragStartX),
+        dragStartCameraY - (event.clientY - dragStartY),
+      )
     }
     const endPointer = (event: PointerEvent) => {
       if (!dragging) return
@@ -2262,13 +2490,20 @@ export default function RainLibrary({
     const onWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaX) < 1 && Math.abs(event.deltaY) < 1) return
       event.preventDefault()
-      updateCamera(cameraX + (Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY * 0.72))
+      // The gallery depth is laid out horizontally, so the ordinary vertical
+      // wheel gesture controls the X camera rather than pushing the scene up.
+      const horizontalDelta = Math.abs(event.deltaX) >= Math.abs(event.deltaY)
+        ? event.deltaX
+        : event.deltaY * 0.72
+      updateCamera(cameraX + horizontalDelta, cameraY)
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
       if ((event.target as HTMLElement | null)?.closest('button, input, textarea, select')) return
       event.preventDefault()
-      updateCamera(cameraX + (event.key === 'ArrowRight' ? width * 0.12 : -width * 0.12))
+      const horizontal = event.key === 'ArrowRight' ? width * 0.12 : event.key === 'ArrowLeft' ? -width * 0.12 : 0
+      const vertical = event.key === 'ArrowDown' ? height * 0.1 : event.key === 'ArrowUp' ? -height * 0.1 : 0
+      updateCamera(cameraX + horizontal, cameraY + vertical)
     }
 
     const observer = new ResizeObserver(resize)
@@ -2310,6 +2545,7 @@ export default function RainLibrary({
       stage.removeEventListener('keydown', onKeyDown)
       stage.classList.remove('is-panning')
       cameraPosition.current = cameraX
+      cameraYPosition.current = cameraY
     }
   }, [chandelierActive, portraitState, rainActive, fireActive, reducedMotion])
 
@@ -2372,8 +2608,9 @@ export default function RainLibrary({
   }, [portraitState.seenMask, portraitState.unlocked, showLibraryCopy])
 
   const handleTarotClick = useCallback(() => {
-    showLibraryCopy([], '塔罗圣堂还没有打开。')
-  }, [showLibraryCopy])
+    showLibraryCopy([], '塔罗圣堂的穹顶正在开启。')
+    onTarotOpen?.()
+  }, [onTarotOpen, showLibraryCopy])
 
   const openBook = useCallback(() => {
     const next = randomIndex(libraryPoems.length, poemIndex ?? -1)
@@ -2492,7 +2729,7 @@ export default function RainLibrary({
               type="button"
               className="library-hotspot library-hotspot--tarot"
               style={hotspotStyle('136%', '33%')}
-              aria-label="通往塔罗圣堂，尚未开放"
+              aria-label="进入塔罗圣堂"
               onClick={handleTarotClick}
             >
               <Sparkles aria-hidden="true" />

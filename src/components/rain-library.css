@@ -10,6 +10,7 @@
   --library-pointer-x: 0;
   --library-pointer-y: 0;
   --library-camera-x: 0px;
+  --library-camera-y: 0px;
   position: relative;
   min-height: 100vh;
   isolation: isolate;
@@ -138,7 +139,7 @@
   z-index: 8;
   inset: 0;
   pointer-events: none;
-  transform: translateX(calc(-1 * var(--library-camera-x, 0px)));
+  transform: translate(calc(-1 * var(--library-camera-x, 0px)), calc(-1 * var(--library-camera-y, 0px)));
   will-change: transform;
 }
 

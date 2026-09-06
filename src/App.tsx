@@ -9,11 +9,13 @@ import RoseAshScene from './components/RoseAshScene'
 import SaintRelicScene from './components/SaintRelicScene'
 import GothicOrbitScene from './components/GothicOrbitScene'
 import WinterBellScene from './components/WinterBellScene'
+import TarotSanctuaryScene from './components/TarotSanctuaryScene'
 import { SCENE_ROUTES, type AudioState, type SceneId } from './types'
 
 const getSceneFromHash = (): SceneId => {
   const route = window.location.hash.replace(/^#\/?/, '').split('/')[0]
   if (route === 'library') return 'library'
+  if (route === 'tarot') return 'tarot'
   if (route === 'clocktower') return 'clocktower'
   if (route === 'saint-relic') return 'saint-relic'
   if (route === 'bone-garden') return 'bone-garden'
@@ -149,12 +151,14 @@ export default function App() {
 
   const currentRoute = useMemo(() => SCENE_ROUTES.find((route) => route.id === scene) ?? SCENE_ROUTES[0], [scene])
   const goToCemetery = useCallback(() => { window.location.hash = '#/cemetery' }, [])
+  const goToTarot = useCallback(() => { window.location.hash = '#/tarot' }, [])
   const onAmbientCue = useCallback((cue: RainLibraryCue) => playCue(cue, audioRef.current.effectsEnabled), [])
 
   return (
     <div className="app-shell">
       {scene === 'cemetery' && <CemeteryScene reducedMotion={reducedMotion} />}
-      {scene === 'library' && <RainLibrary reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} onAmbientCue={onAmbientCue} />}
+      {scene === 'library' && <RainLibrary reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} onAmbientCue={onAmbientCue} onTarotOpen={goToTarot} />}
+      {scene === 'tarot' && <TarotSanctuaryScene reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} />}
       {scene === 'clocktower' && <ClockTowerScene reducedMotion={reducedMotion} effectsEnabled={audio.effectsEnabled} />}
       {scene === 'saint-relic' && <SaintRelicScene reducedMotion={reducedMotion} />}
       {scene === 'bone-garden' && <BoneGardenScene reducedMotion={reducedMotion} />}

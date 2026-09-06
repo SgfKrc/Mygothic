@@ -1,5 +1,5 @@
-import { ArrowLeft, Feather, LockKeyhole, Send, Sparkles } from 'lucide-react'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { Feather, LockKeyhole, Send, Sparkles } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import './rose-ash.css'
 
 type RoseAshSceneProps = {
@@ -59,6 +59,9 @@ const drawPetal = (ctx: CanvasRenderingContext2D, x: number, y: number, length: 
   shade.addColorStop(.72, fill)
   shade.addColorStop(1, shadeHex(fill, .18))
   ctx.fillStyle = shade
+  ctx.shadowColor = 'rgba(4, 3, 6, .42)'
+  ctx.shadowBlur = Math.max(1.5, width * .035)
+  ctx.shadowOffsetY = Math.max(1, length * .035)
   ctx.beginPath()
   ctx.moveTo(-width * .16, 0)
   ctx.bezierCurveTo(-width * (.78 + fold * .16), -length * (.08 + curl * .09), -width * (.82 + fold * .2), -length * (.52 + curl * .1), -width * (.18 + curl * .12), -length * (.91 + curl * .04))
@@ -150,11 +153,6 @@ const drawRoseBloom = (ctx: CanvasRenderingContext2D, options: RoseBloomOptions)
   ctx.bezierCurveTo(controlOne.x - width * .002, controlOne.y, controlTwo.x - width * .002, controlTwo.y, stemTopX - width * .002, stemTopY)
   ctx.stroke()
 
-  ctx.fillStyle = stemColor
-  ctx.beginPath()
-  ctx.ellipse(rootX, rootY, width * .012, height * .008, lean * .7, 0, Math.PI * 2)
-  ctx.fill()
-
   const drawLeaf = (x: number, y: number, angle: number, leafLength: number, leafWidth: number, leafFill: string) => {
     ctx.save()
     ctx.translate(x, y)
@@ -164,8 +162,8 @@ const drawRoseBloom = (ctx: CanvasRenderingContext2D, options: RoseBloomOptions)
     ctx.lineWidth = Math.max(1, width * .0011)
     ctx.beginPath()
     ctx.moveTo(0, 0)
-    ctx.bezierCurveTo(leafWidth * .42, -leafLength * .18, leafWidth * .82, -leafLength * .74, 0, -leafLength)
-    ctx.bezierCurveTo(-leafWidth * .72, -leafLength * .76, -leafWidth * .36, -leafLength * .22, 0, 0)
+    ctx.bezierCurveTo(leafWidth * .18, -leafLength * .2, leafWidth * .36, -leafLength * .78, 0, -leafLength)
+    ctx.bezierCurveTo(-leafWidth * .31, -leafLength * .82, -leafWidth * .14, -leafLength * .24, 0, 0)
     ctx.fill()
     ctx.stroke()
     ctx.strokeStyle = 'rgba(213, 200, 133, .46)'
@@ -193,7 +191,7 @@ const drawRoseBloom = (ctx: CanvasRenderingContext2D, options: RoseBloomOptions)
     const leafProgress = .3 + leaf * .16 + random() * .075
     const point = stemPoint(Math.min(.91, leafProgress))
     const leafAngle = side * (Math.PI * (.19 + random() * .12)) + (random() - .5) * .16
-    drawLeaf(point.x, point.y, leafAngle, height * (.066 + random() * .038), width * (.032 + random() * .014), leaf % 2 ? '#626447' : '#414b3d')
+    drawLeaf(point.x, point.y, leafAngle, height * (.072 + random() * .04), width * (.017 + random() * .008), leaf % 2 ? '#626447' : '#414b3d')
   }
 
   ctx.save()
@@ -220,6 +218,20 @@ const drawRoseBloom = (ctx: CanvasRenderingContext2D, options: RoseBloomOptions)
   const scaleY = (.92 + random() * .2) * (.86 + opening * .14)
   const petalW = flowerWidth * scaleX
   const petalH = flowerHeight * scaleY
+
+  // A recessed cup sits behind the outer ring. Its dark lower lip gives the
+  // bloom a front/back edge before individual petals are layered over it.
+  ctx.save()
+  ctx.globalAlpha = .38 * bloom
+  const cup = ctx.createRadialGradient(0, petalH * .12, petalW * .04, 0, petalH * .12, petalW * .48)
+  cup.addColorStop(0, shadeHex(colorA, -.72))
+  cup.addColorStop(.62, shadeHex(colorB, -.62))
+  cup.addColorStop(1, 'rgba(5, 5, 8, 0)')
+  ctx.fillStyle = cup
+  ctx.beginPath()
+  ctx.ellipse(0, petalH * .13, petalW * .46, petalH * .075, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
 
   // Outer ring: a compact ellipse with a low front edge reads as a rose cup.
   const outerCount = 13 + Math.floor(random() * 3)
@@ -279,11 +291,21 @@ const drawRoseBloom = (ctx: CanvasRenderingContext2D, options: RoseBloomOptions)
   ctx.translate(stemTopX, roseY + flowerHeight * .085)
   ctx.rotate(lean)
   for (let sepal = 0; sepal < 5; sepal += 1) {
-    const angle = -Math.PI / 2 + (sepal - 2) * .57 + (random() - .5) * .1
-    const sepalLength = flowerHeight * (.075 + random() * .055)
-    const sepalWidth = flowerWidth * (.045 + random() * .018)
+    // The calyx opens sideways beneath the bloom instead of stacking five
+    // narrow blades vertically. Each blade is drawn along its local +X axis,
+    // then fanned left/right around the flower base so the silhouette stays
+    // visibly horizontal at a glance.
+    const lateral = sepal - 2
+    const angle = lateral === 0
+      ? Math.PI / 2 + (random() - .5) * .08
+      : (lateral < 0 ? Math.PI : 0) + lateral * .16 + (random() - .5) * .1
+    const sepalLength = flowerHeight * (.09 + random() * .035)
+    const sepalWidth = flowerWidth * (.05 + random() * .018)
+    const baseX = lateral * flowerWidth * .018
+    const baseY = Math.abs(lateral) * flowerHeight * .012
     const sepalFill = sepal % 2 ? shadeHex(stemColor, -.12) : shadeHex(stemColor, .08)
     ctx.save()
+    ctx.translate(baseX, baseY)
     ctx.rotate(angle)
     ctx.globalAlpha = (.78 + bloom * .22)
     ctx.fillStyle = sepalFill
@@ -291,15 +313,15 @@ const drawRoseBloom = (ctx: CanvasRenderingContext2D, options: RoseBloomOptions)
     ctx.lineWidth = Math.max(1, width * .0012)
     ctx.beginPath()
     ctx.moveTo(0, 0)
-    ctx.bezierCurveTo(sepalWidth * .58, -sepalLength * .2, sepalWidth * .72, -sepalLength * .72, 0, -sepalLength)
-    ctx.bezierCurveTo(-sepalWidth * .72, -sepalLength * .73, -sepalWidth * .54, -sepalLength * .2, 0, 0)
+    ctx.bezierCurveTo(sepalLength * .34, -sepalWidth * .56, sepalLength * .78, -sepalWidth * .62, sepalLength, 0)
+    ctx.bezierCurveTo(sepalLength * .78, sepalWidth * .62, sepalLength * .34, sepalWidth * .56, 0, 0)
     ctx.fill()
     ctx.stroke()
     ctx.strokeStyle = 'rgba(218, 202, 137, .42)'
     ctx.lineWidth = Math.max(1, width * .0009)
     ctx.beginPath()
-    ctx.moveTo(0, -sepalLength * .04)
-    ctx.quadraticCurveTo(sepalWidth * .08, -sepalLength * .5, 0, -sepalLength * .9)
+    ctx.moveTo(sepalLength * .04, 0)
+    ctx.quadraticCurveTo(sepalLength * .5, sepalWidth * .08, sepalLength * .9, 0)
     ctx.stroke()
     ctx.restore()
   }
@@ -393,6 +415,46 @@ const drawRoseAsh = (ctx: CanvasRenderingContext2D, width: number, height: numbe
   ctx.fillStyle = background
   ctx.fillRect(0, 0, width, height)
 
+  // Layered chapel walls give the three stems a real room to occupy: the
+  // distant apse, middle ribs and near side piers are deliberately separated
+  // by value so the dark flower heads do not collapse into one flat backdrop.
+  const wallGlow = ctx.createRadialGradient(centerX, height * .34, width * .04, centerX, height * .42, width * .7)
+  wallGlow.addColorStop(0, 'rgba(119, 75, 73, .16)')
+  wallGlow.addColorStop(.55, 'rgba(61, 39, 49, .08)')
+  wallGlow.addColorStop(1, 'rgba(7, 7, 11, .5)')
+  ctx.fillStyle = wallGlow
+  ctx.fillRect(0, 0, width, height * .8)
+  ctx.fillStyle = 'rgba(7, 7, 10, .44)'
+  ctx.beginPath()
+  ctx.moveTo(0, height * .12)
+  ctx.lineTo(width * .16, height * .2)
+  ctx.lineTo(width * .22, height * .78)
+  ctx.lineTo(0, height * .82)
+  ctx.closePath()
+  ctx.fill()
+  ctx.beginPath()
+  ctx.moveTo(width, height * .12)
+  ctx.lineTo(width * .84, height * .2)
+  ctx.lineTo(width * .78, height * .78)
+  ctx.lineTo(width, height * .82)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(198, 150, 117, .13)'
+  ctx.lineWidth = Math.max(1, width * .002)
+  for (let bay = 0; bay < 5; bay += 1) {
+    const ratio = bay / 4
+    const leftX = width * (.02 + ratio * .2)
+    const rightX = width - leftX
+    ctx.beginPath()
+    ctx.moveTo(leftX, height * .8)
+    ctx.quadraticCurveTo(centerX + (leftX - centerX) * .42, height * .35, centerX, height * .11)
+    ctx.moveTo(rightX, height * .8)
+    ctx.quadraticCurveTo(centerX + (rightX - centerX) * .42, height * .35, centerX, height * .11)
+    ctx.stroke()
+  }
+  ctx.fillStyle = 'rgba(4, 5, 7, .26)'
+  ctx.fillRect(0, height * .68, width, height * .13)
+
   // Glasshouse ribs and a rose window give the room a quiet gothic silhouette.
   ctx.strokeStyle = 'rgba(181, 136, 116, .22)'
   ctx.lineWidth = Math.max(1, width * .0013)
@@ -416,6 +478,12 @@ const drawRoseAsh = (ctx: CanvasRenderingContext2D, width: number, height: numbe
   }
 
   ctx.fillStyle = '#0c0a0e'
+  ctx.fillRect(0, groundY, width, height - groundY)
+  const floorDepth = ctx.createLinearGradient(0, groundY, 0, height)
+  floorDepth.addColorStop(0, 'rgba(79, 53, 55, .18)')
+  floorDepth.addColorStop(.46, 'rgba(28, 20, 28, .1)')
+  floorDepth.addColorStop(1, 'rgba(2, 3, 5, .62)')
+  ctx.fillStyle = floorDepth
   ctx.fillRect(0, groundY, width, height - groundY)
   ctx.strokeStyle = 'rgba(189, 147, 116, .2)'
   ctx.lineWidth = Math.max(1, width * .001)
@@ -443,7 +511,7 @@ const drawRoseAsh = (ctx: CanvasRenderingContext2D, width: number, height: numbe
   if (easter) drawEasterLight(ctx, width, height, time, reducedMotion)
   // Three stems share one palette while their seed offsets create distinct
   // poses, heights and bloom proportions for the same memorial word.
-  const rootPositions: number[] = []
+  const rootEntries: Array<{ x: number; y: number }> = []
   for (let roseIndex = 0; roseIndex < 3; roseIndex += 1) {
     const roseRandom = seededRandom(seed ^ (0x9e3779b9 + roseIndex * 0x6d2b79f5))
     const roseX = centerX + (roseIndex - 1) * width * (.17 + roseRandom() * .045) + (roseRandom() - .5) * width * .025
@@ -451,7 +519,7 @@ const drawRoseAsh = (ctx: CanvasRenderingContext2D, width: number, height: numbe
     const potRootOffsets = [-.085, 0, .085] as const
     const rootX = centerX + potRootOffsets[roseIndex] * width + (roseRandom() - .5) * width * .025
     const rootY = groundY + height * (.025 + roseRandom() * .018)
-    rootPositions.push(rootX)
+    rootEntries.push({ x: rootX, y: rootY })
     drawRoseBloom(ctx, {
       roseX,
       roseY: roseYVariant,
@@ -668,7 +736,12 @@ const drawRoseAsh = (ctx: CanvasRenderingContext2D, width: number, height: numbe
   }
 
   // A small ash altar anchors the generated bloom to the room.
-  ctx.fillStyle = '#211820'
+  const altarGradient = ctx.createLinearGradient(centerX - width * .13, groundY, centerX + width * .13, groundY + height * .11)
+  altarGradient.addColorStop(0, '#5d3c3d')
+  altarGradient.addColorStop(.25, '#2d2029')
+  altarGradient.addColorStop(.78, '#17131b')
+  altarGradient.addColorStop(1, '#090b0d')
+  ctx.fillStyle = altarGradient
   ctx.strokeStyle = 'rgba(189, 147, 116, .4)'
   ctx.lineWidth = Math.max(1, width * .0017)
   ctx.beginPath()
@@ -685,21 +758,58 @@ const drawRoseAsh = (ctx: CanvasRenderingContext2D, width: number, height: numbe
   ctx.lineTo(centerX + width * .08, groundY + height * .058)
   ctx.stroke()
 
-  // The roots sit below the rim, so every stem visibly enters the same pot
-  // while retaining its own offset and lean.
-  rootPositions.forEach((rootX, index) => {
-    const rootY = groundY + height * (.052 + (index % 2) * .006)
-    ctx.strokeStyle = index % 2 ? '#596047' : '#414b3d'
-    ctx.lineWidth = Math.max(2, width * .003)
+  // Uneven soil mounds hide the root junctions without adding another set of
+  // detached oval shapes at the base of each stem.
+  ctx.fillStyle = '#111612'
+  ctx.strokeStyle = 'rgba(119, 122, 84, .52)'
+  ctx.lineWidth = Math.max(1, width * .0012)
+  ctx.beginPath()
+  ctx.ellipse(centerX, groundY + height * .037, width * .116, height * .014, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.stroke()
+  for (let clump = 0; clump < 11; clump += 1) {
+    const clumpX = centerX - width * .1 + (clump / 10) * width * .2
+    const clumpY = groundY + height * (.032 + (clump % 3) * .004)
+    ctx.fillStyle = clump % 2 ? 'rgba(93, 103, 70, .72)' : 'rgba(56, 67, 48, .78)'
+    ctx.fillRect(clumpX, clumpY, width * (.006 + (clump % 2) * .003), height * .004)
+  }
+  // Draw each root as a clipped, branching collar inside the soil ellipse.
+  // Clipping keeps the junction below the rim instead of painting through it.
+  ctx.save()
+  ctx.beginPath()
+  ctx.ellipse(centerX, groundY + height * .037, width * .116, height * .014, 0, 0, Math.PI * 2)
+  ctx.clip()
+  rootEntries.forEach(({ x: rootX, y: rootY }, index) => {
+    const rootTone = index % 2 ? '#78805a' : '#596449'
+    const collarY = groundY + height * (.036 + (index % 2) * .002)
+    const flare = width * (.012 + index * .002)
+    ctx.fillStyle = rootTone
     ctx.beginPath()
-    ctx.moveTo(rootX, rootY - height * .018)
-    ctx.quadraticCurveTo(rootX + (index - 1) * width * .012, rootY, rootX + (index - 1) * width * .018, rootY + height * .012)
-    ctx.stroke()
-    ctx.fillStyle = index % 2 ? '#69704e' : '#4f5a43'
-    ctx.beginPath()
-    ctx.ellipse(rootX + (index - 1) * width * .018, rootY + height * .012, width * .017, height * .009, (index - 1) * .18, 0, Math.PI * 2)
+    ctx.moveTo(rootX - flare, rootY - height * .006)
+    ctx.quadraticCurveTo(rootX - flare * 1.4, collarY - height * .002, rootX - flare * .55, collarY + height * .009)
+    ctx.lineTo(rootX + flare * .6, collarY + height * .009)
+    ctx.quadraticCurveTo(rootX + flare * 1.5, collarY - height * .002, rootX + flare, rootY - height * .006)
+    ctx.closePath()
     ctx.fill()
+    ctx.strokeStyle = rootTone
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = Math.max(2, width * .0022)
+    ctx.beginPath()
+    ctx.moveTo(rootX, rootY - height * .004)
+    ctx.bezierCurveTo(rootX + (index - 1) * width * .01, collarY - height * .006, rootX + (index - 1) * width * .021, collarY, rootX + (index - 1) * width * .028, collarY + height * .012)
+    ctx.stroke()
+    for (let rootlet = 0; rootlet < 4; rootlet += 1) {
+      const direction = rootlet % 2 === 0 ? -1 : 1
+      const level = Math.floor(rootlet / 2)
+      ctx.lineWidth = Math.max(1.1, width * .00125)
+      ctx.beginPath()
+      ctx.moveTo(rootX + (index - 1) * width * .014 + direction * width * .004, collarY + height * (.002 + level * .006))
+      ctx.quadraticCurveTo(rootX + direction * width * (.022 + level * .009), collarY + height * (.008 + level * .003), rootX + direction * width * (.04 + level * .012), collarY + height * (.014 + level * .006))
+      ctx.stroke()
+    }
   })
+  ctx.restore()
 }
 
 export default function RoseAshScene({ reducedMotion = false }: RoseAshSceneProps) {
@@ -804,7 +914,6 @@ export default function RoseAshScene({ reducedMotion = false }: RoseAshSceneProp
     }
   }, [easterActive, phase, reducedMotion, seed])
 
-  const backStyle: CSSProperties = { left: '50%', bottom: '5%' }
   return (
     <main className="rose-ash-scene" data-scene="rose-ash" data-seed={seed} aria-labelledby="rose-ash-title">
       <div className="rose-ash-stage" ref={stageRef}>
@@ -849,10 +958,6 @@ export default function RoseAshScene({ reducedMotion = false }: RoseAshSceneProp
         {easterCaption && <p key={easterPulse} className="rose-ash-easter-caption" role="status" aria-live="assertive">{easterCaption}</p>}
         <p className="rose-ash-prayer" aria-hidden="true"><span>少</span><span>女</span><span>祈</span><span>祷</span><span>中</span><span>…</span><span>…</span></p>
         {hovered && activeMessage && phase === 'bloomed' && <p className="rose-ash-memory" role="status">“{activeMessage}”</p>}
-        <button type="button" className="rose-ash-back" style={backStyle} onClick={() => { window.location.hash = '#/cemetery' }}>
-          <ArrowLeft aria-hidden="true" />
-          <span>返回墓地</span>
-        </button>
       </div>
     </main>
   )

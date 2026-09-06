@@ -1,4 +1,4 @@
-import { ArrowLeft, Dices, DoorOpen, Move3d, RefreshCw, RotateCw, Sparkles } from 'lucide-react'
+import { Dices, DoorOpen, Move3d, RefreshCw, RotateCw, Sparkles } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './bone-garden.css'
 
@@ -62,6 +62,18 @@ const drawCurvedBone = (ctx: CanvasRenderingContext2D, x1: number, y1: number, x
   gradient.addColorStop(.52, warm ? `rgba(235, 199, 133, ${alpha})` : `rgba(233, 232, 211, ${alpha})`)
   gradient.addColorStop(1, warm ? `rgba(125, 94, 60, ${alpha * .64})` : `rgba(141, 150, 142, ${alpha * .7})`)
   ctx.save()
+  // A broad shaded under-stroke gives each bough a carved, bone-like body;
+  // the luminous gradient below becomes its raised ridge instead of a lone
+  // one-pixel contour.
+  ctx.strokeStyle = warm ? `rgba(45, 29, 26, ${alpha * .6})` : `rgba(27, 34, 32, ${alpha * .58})`
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = Math.max(width * 2.15, width + 2.4)
+  ctx.shadowColor = 'transparent'
+  ctx.beginPath()
+  ctx.moveTo(x1, y1)
+  ctx.quadraticCurveTo((x1 + x2) * .5 + bend, (y1 + y2) * .5, x2, y2)
+  ctx.stroke()
   ctx.strokeStyle = gradient
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -71,6 +83,12 @@ const drawCurvedBone = (ctx: CanvasRenderingContext2D, x1: number, y1: number, x
   ctx.beginPath()
   ctx.moveTo(x1, y1)
   ctx.quadraticCurveTo((x1 + x2) * .5 + bend, (y1 + y2) * .5, x2, y2)
+  ctx.stroke()
+  ctx.strokeStyle = warm ? `rgba(255, 231, 177, ${alpha * .28})` : `rgba(252, 249, 226, ${alpha * .3})`
+  ctx.lineWidth = Math.max(.65, width * .22)
+  ctx.beginPath()
+  ctx.moveTo(x1 - width * .12, y1 - width * .08)
+  ctx.quadraticCurveTo((x1 + x2) * .5 + bend - width * .08, (y1 + y2) * .5 - width * .06, x2 - width * .12, y2 - width * .08)
   ctx.stroke()
   ctx.restore()
 }
@@ -415,6 +433,58 @@ const drawBoneNebula = (
   ctx.restore()
 }
 
+const drawBoneDepthMounds = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: number,
+  reducedMotion: boolean,
+  yaw: number,
+  random: () => number,
+  warm: boolean,
+) => {
+  const pulse = reducedMotion ? 0 : Math.sin(time * .00042) * .5 + .5
+  // Opaque silhouettes behind the nebula stop the tree from floating in an
+  // empty gradient and establish three readable distances.
+  for (let layer = 0; layer < 3; layer += 1) {
+    const depth = layer / 2
+    const offset = yaw * width * (.018 + depth * .028)
+    const baseY = height * (.52 + depth * .11)
+    const moundGradient = ctx.createLinearGradient(0, baseY - height * .1, 0, baseY + height * .32)
+    moundGradient.addColorStop(0, warm ? `rgba(92, 56, 55, ${.1 - depth * .015})` : `rgba(68, 93, 88, ${.1 - depth * .015})`)
+    moundGradient.addColorStop(1, 'rgba(4, 6, 9, .68)')
+    ctx.fillStyle = moundGradient
+    ctx.beginPath()
+    ctx.moveTo(-width * .08 + offset, height)
+    for (let point = 0; point <= 12; point += 1) {
+      const x = -width * .08 + width * 1.16 * point / 12 + offset
+      const y = baseY - height * (.025 + random() * .055) - Math.sin(point * .78 + layer) * height * .012
+      ctx.lineTo(x, y)
+    }
+    ctx.lineTo(width * 1.1 + offset, height)
+    ctx.closePath()
+    ctx.fill()
+
+    const branchCount = 3 + layer
+    for (let branch = 0; branch < branchCount; branch += 1) {
+      const side = branch % 2 === 0 ? -1 : 1
+      const startX = width * (.18 + random() * .64) + offset
+      const startY = baseY - height * (.02 + random() * .03)
+      const length = width * (.12 + random() * .12) * (1 - depth * .15)
+      const endX = startX + side * length
+      const endY = startY - height * (.12 + random() * .13)
+      drawCurvedBone(ctx, startX, startY, endX, endY, side * length * (.18 + random() * .2), Math.max(2, width * (.0048 - depth * .0008)), .16 + pulse * .05 - depth * .025, warm)
+    }
+  }
+  ctx.save()
+  const veil = ctx.createLinearGradient(0, height * .55, 0, height)
+  veil.addColorStop(0, 'rgba(12, 14, 17, 0)')
+  veil.addColorStop(1, 'rgba(4, 5, 8, .32)')
+  ctx.fillStyle = veil
+  ctx.fillRect(0, height * .48, width, height * .52)
+  ctx.restore()
+}
+
 const drawBoneGarden = (ctx: CanvasRenderingContext2D, width: number, height: number, time: number, reducedMotion: boolean, seed: number, yaw: number, growth: number, resonance: number) => {
   const random = seededRandom(seed)
   const horizon = height * .47
@@ -507,6 +577,7 @@ const drawBoneGarden = (ctx: CanvasRenderingContext2D, width: number, height: nu
     drawBone(ctx, x + plotWidth * .2, y + 2 * unit, x + plotWidth * .78, y + height * (.018 + random() * .02), unit * (1.2 + random() * 1.8), .42)
   }
 
+  drawBoneDepthMounds(ctx, width, height, time, reducedMotion, yaw, random, warm)
   drawBoneNebula(ctx, width * .5, height * .47, width, height, time, reducedMotion, random, warm, resonance)
 
   // A circular ossuary dais anchors the generated organism.
@@ -553,7 +624,7 @@ const drawBoneGarden = (ctx: CanvasRenderingContext2D, width: number, height: nu
     const treesInLayer = Math.max(1, treeCount - Math.floor(depth * (generationStyle === 2 ? .85 : 1.35)) + (random() > .7 ? 1 : 0))
     const layerScale = (generationStyle === 3 ? .48 : .56) + frontness * (generationStyle === 1 ? .5 : .42)
     const layerY = 48 + depth * (generationStyle === 1 ? 38 : 32) + random() * 16
-    const layerAlpha = .1 + frontness * (generationStyle === 2 ? .3 : .25)
+    const layerAlpha = .15 + frontness * (generationStyle === 2 ? .34 : .3)
     const layerLean = seedLean * (.45 + frontness * (generationStyle === 3 ? .55 : .35))
     for (let tree = 0; tree < treesInLayer; tree += 1) {
       const centered = treesInLayer === 1 ? 0 : tree / (treesInLayer - 1) - .5
@@ -814,10 +885,6 @@ export default function BoneGardenScene({ reducedMotion = false }: BoneGardenSce
           <button type="button" className="bone-garden-link bone-garden-link--relic" onClick={() => { window.location.hash = '#/saint-relic' }}>
             <DoorOpen aria-hidden="true" />
             <span>前往圣遗物室</span>
-          </button>
-          <button type="button" className="bone-garden-link" onClick={() => { window.location.hash = '#/cemetery' }}>
-            <ArrowLeft aria-hidden="true" />
-            <span>返回墓地</span>
           </button>
         </nav>
       </div>

@@ -1,4 +1,4 @@
-import { ArrowLeft, Bird, Dices, Download, Feather, Radio, Sparkles, WandSparkles } from 'lucide-react'
+import { Bird, Dices, Download, Feather, Radio, Sparkles, WandSparkles } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './rookery.css'
 
@@ -743,8 +743,16 @@ const drawRookery = (ctx: CanvasRenderingContext2D, width: number, height: numbe
     const phase = random() * Math.PI * 2
     const radiusX = width * (.19 + random() * .26)
     const radiusY = height * (.08 + random() * .13)
-    const orbit = reducedMotion ? phase : phase + time * (.00018 + random() * .00018) * (index % 2 ? -1 : 1)
-    drawRaven(ctx, centerX + Math.cos(orbit) * radiusX, centerY + Math.sin(orbit) * radiusY - height * (.06 + random() * .15), unit * (.46 + random() * .42), Math.sin(orbit) * .28, .55 + random() * .3, index % 2 ? '#7c9b9e' : '#aa8a5a')
+    const angularSpeed = .00018 + random() * .00018
+    const angularVelocity = reducedMotion ? 0 : angularSpeed * (index % 2 ? -1 : 1)
+    const orbit = phase + time * angularVelocity
+    const ravenX = centerX + Math.cos(orbit) * radiusX
+    const ravenY = centerY + Math.sin(orbit) * radiusY - height * (.06 + random() * .15)
+    // The raven's head points along the same tangent as its orbital motion.
+    const velocityX = -Math.sin(orbit) * radiusX * angularVelocity
+    const velocityY = Math.cos(orbit) * radiusY * angularVelocity
+    const motionAngle = angularVelocity === 0 ? Math.sin(phase) * .12 : Math.atan2(velocityY, velocityX)
+    drawRaven(ctx, ravenX, ravenY, unit * (.46 + random() * .42), motionAngle, .55 + random() * .3, index % 2 ? '#7c9b9e' : '#aa8a5a')
   }
 
   const shieldSize = Math.min(width * .35, height * .36)
@@ -908,9 +916,6 @@ export default function RookeryScene({ reducedMotion = false }: RookerySceneProp
           </div>
         </section>
         <div className="rookery-status" aria-live="polite"><Feather aria-hidden="true" /><span>{word ? `纹章已为「${word}」铸成 · ${paletteName}底 · ${frameName} · ${motifName}` : '等待一名信使'}</span></div>
-        <nav className="rookery-nav" aria-label="鸦巢展馆导航">
-          <button type="button" className="rookery-link" onClick={() => { window.location.hash = '#/cemetery' }}><ArrowLeft aria-hidden="true" /><span>返回墓地</span></button>
-        </nav>
       </div>
     </main>
   )

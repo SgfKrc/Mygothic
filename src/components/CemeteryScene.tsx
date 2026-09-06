@@ -714,6 +714,7 @@ function drawCemetery(
   const t = reducedMotion ? 0 : time / 1000
   const horizon = height * 0.57
   const parallax = (layer: number) => (pointer.x - 0.5) * width * layer
+  const parallaxY = (layer: number) => (pointer.y - 0.45) * height * layer
 
   ctx.clearRect(0, 0, width, height)
 
@@ -742,7 +743,7 @@ function drawCemetery(
     ctx.save()
     ctx.globalAlpha = 0.42
     ctx.globalCompositeOperation = 'screen'
-    ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height)
+    ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, -width * .04 + parallax(.01), -height * .04 + parallaxY(.01), width * 1.08, height * 1.08)
     ctx.restore()
   }
 
@@ -758,7 +759,7 @@ function drawCemetery(
   ctx.restore()
 
   const moonX = width * 0.73 + parallax(0.012)
-  const moonY = height * 0.2 + pointer.y * 8
+  const moonY = height * 0.2 + parallaxY(.018)
   const moonRadius = Math.max(42, Math.min(width, height) * 0.105)
   const moonGlow = ctx.createRadialGradient(moonX, moonY, moonRadius * 0.35, moonX, moonY, moonRadius * 2.5)
   moonGlow.addColorStop(0, 'rgba(229, 211, 183, 0.2)')
@@ -780,7 +781,7 @@ function drawCemetery(
   ctx.fillStyle = '#4a2633'
   for (let index = 0; index < 6; index += 1) {
     const cloudX = ((index * width * 0.27 + parallax(0.03) + t * (4 + index)) % (width + 300)) - 150
-    const cloudY = height * (0.19 + (index % 3) * 0.065)
+    const cloudY = height * (0.19 + (index % 3) * 0.065) + parallaxY(.035)
     ctx.beginPath()
     ctx.ellipse(cloudX, cloudY, width * 0.12, height * 0.025, 0, 0, Math.PI * 2)
     ctx.ellipse(cloudX + width * 0.085, cloudY + 3, width * 0.1, height * 0.018, 0, 0, Math.PI * 2)
@@ -790,7 +791,7 @@ function drawCemetery(
 
   // Far wall and cypress silhouettes.
   ctx.save()
-  ctx.translate(parallax(0.06), 0)
+  ctx.translate(parallax(0.06), parallaxY(.055))
   ctx.fillStyle = '#120d16'
   ctx.beginPath()
   ctx.moveTo(-width, horizon + height * 0.1)
@@ -812,16 +813,17 @@ function drawCemetery(
 
   // Left skyline reserve: a narrow rookery tower marks the future Crow Nest wing.
   ctx.save()
-  ctx.translate(parallax(0.1), 0)
+  ctx.translate(parallax(0.1), parallaxY(.085))
   drawCrowRookery(ctx, width * .14, horizon + height * .085, width * .13, height * .31)
   ctx.restore()
 
   // Central bell tower.
   const towerX = width * 0.48 + parallax(0.12)
+  const towerY = parallaxY(.11)
   const towerWidth = Math.max(108, width * 0.115)
   const towerBase = horizon + height * 0.16
   ctx.save()
-  ctx.translate(towerX, 0)
+  ctx.translate(towerX, towerY)
   ctx.fillStyle = '#17131a'
   ctx.strokeStyle = '#6e5960'
   ctx.lineWidth = Math.max(1, width * 0.0015)
@@ -1061,7 +1063,7 @@ function drawCemetery(
 
   // Small distant graves establish multiple depth bands before the readable foreground stones.
   ctx.save()
-  ctx.translate(parallax(0.18), 0)
+  ctx.translate(parallax(0.18), parallaxY(.16))
   for (let row = 0; row < 3; row += 1) {
     const count = 15 - row * 2
     const rowY = horizon + height * (0.08 + row * 0.075)
@@ -1096,7 +1098,7 @@ function drawCemetery(
 
   // Foreground iron fence.
   ctx.save()
-  ctx.translate(parallax(0.32), 0)
+  ctx.translate(parallax(0.32), parallaxY(.27))
   ctx.strokeStyle = 'rgba(7, 7, 10, 0.96)'
   ctx.lineWidth = Math.max(2, width * 0.003)
   const fenceY = height * 0.72
@@ -1129,7 +1131,7 @@ function drawCemetery(
     drawTombstone(
       ctx,
       width * stone.x + parallax(0.47 + index * 0.01),
-      height * stone.y,
+      height * stone.y + parallaxY(.42 + index * .02),
       width * stone.w,
       height * stone.h,
       stone.tilt,
@@ -1142,8 +1144,8 @@ function drawCemetery(
 
   // Candle lights and firefly-sized ash.
   const candlePoints = [
-    { x: width * 0.39 + parallax(0.5), y: height * 0.84, r: Math.max(3, width * 0.004) },
-    { x: width * 0.64 + parallax(0.5), y: height * 0.88, r: Math.max(3, width * 0.003) },
+    { x: width * 0.39 + parallax(0.5), y: height * 0.84 + parallaxY(.48), r: Math.max(3, width * 0.004) },
+    { x: width * 0.64 + parallax(0.5), y: height * 0.88 + parallaxY(.48), r: Math.max(3, width * 0.003) },
   ]
   candlePoints.forEach((point, index) => {
     const flicker = reducedMotion ? 0 : Math.sin(t * (5 + index) + index) * 0.16

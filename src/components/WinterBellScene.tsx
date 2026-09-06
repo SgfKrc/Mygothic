@@ -1,4 +1,4 @@
-import { ArrowLeft, BellRing, CloudSnow, Snowflake } from 'lucide-react'
+import { BellRing, CloudSnow, Snowflake } from 'lucide-react'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import './winter-bell.css'
 
@@ -39,7 +39,7 @@ const createSnow = () => {
   }))
 }
 
-const drawSnowTombstone = (ctx: CanvasRenderingContext2D, x: number, base: number, width: number, height: number, alpha: number, tilt: number, snow: boolean, tone: string) => {
+const drawSnowTombstone = (ctx: CanvasRenderingContext2D, x: number, base: number, width: number, height: number, alpha: number, tilt: number, snow: boolean, tone: string, variant = 0) => {
   ctx.save()
   ctx.translate(x, base)
   ctx.rotate(tilt)
@@ -55,8 +55,19 @@ const drawSnowTombstone = (ctx: CanvasRenderingContext2D, x: number, base: numbe
   ctx.lineWidth = Math.max(1, width * .026)
   ctx.beginPath()
   ctx.moveTo(-half, 0)
-  ctx.lineTo(-half * .96, top + height * .18)
-  ctx.quadraticCurveTo(0, top - height * .12, half * .96, top + height * .18)
+  if (variant % 3 === 0) {
+    ctx.lineTo(-half * .96, top + height * .18)
+    ctx.quadraticCurveTo(0, top - height * .12, half * .96, top + height * .18)
+  } else if (variant % 3 === 1) {
+    ctx.lineTo(-half * .96, top + height * .16)
+    ctx.lineTo(0, top - height * .16)
+    ctx.lineTo(half * .96, top + height * .16)
+  } else {
+    ctx.lineTo(-half * .96, top + height * .2)
+    ctx.lineTo(-half * .58, top + height * .08)
+    ctx.quadraticCurveTo(0, top - height * .1, half * .58, top + height * .08)
+    ctx.lineTo(half * .96, top + height * .2)
+  }
   ctx.lineTo(half, 0)
   ctx.closePath()
   ctx.fill()
@@ -102,7 +113,143 @@ const drawSnowTombstone = (ctx: CanvasRenderingContext2D, x: number, base: numbe
   ctx.lineTo(half * .38, top + height * .43)
   ctx.lineTo(half * .44, top + height * .52)
   ctx.stroke()
+  // Each marker gets one readable carved motif instead of detached triangles.
+  ctx.strokeStyle = 'rgba(201, 207, 197, .46)'
+  ctx.lineWidth = Math.max(.8, width * .008)
+  if (variant % 3 === 1) {
+    const crossY = top + height * .42
+    ctx.beginPath()
+    ctx.moveTo(0, top + height * .25)
+    ctx.lineTo(0, top + height * .66)
+    ctx.moveTo(-half * .3, crossY)
+    ctx.lineTo(half * .3, crossY)
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(201, 207, 197, .28)'
+    ctx.beginPath()
+    ctx.arc(0, crossY, Math.max(1, width * .018), 0, Math.PI * 2)
+    ctx.fill()
+  } else if (variant % 3 === 2) {
+    for (const side of [-1, 1] as const) {
+      const windowX = side * half * .28
+      ctx.beginPath()
+      ctx.moveTo(windowX - half * .09, top + height * .62)
+      ctx.lineTo(windowX - half * .09, top + height * .42)
+      ctx.quadraticCurveTo(windowX, top + height * .3, windowX + half * .09, top + height * .42)
+      ctx.lineTo(windowX + half * .09, top + height * .62)
+      ctx.stroke()
+    }
+  } else {
+    ctx.beginPath()
+    ctx.moveTo(0, top + height * .25)
+    ctx.lineTo(-half * .2, top + height * .42)
+    ctx.lineTo(0, top + height * .6)
+    ctx.lineTo(half * .2, top + height * .42)
+    ctx.closePath()
+    ctx.stroke()
+  }
   ctx.restore()
+  ctx.restore()
+}
+
+const drawDistantGothicTower = (ctx: CanvasRenderingContext2D, x: number, base: number, width: number, height: number, alpha: number, variant: number) => {
+  ctx.save()
+  ctx.translate(x, base)
+  const half = width / 2
+  const top = -height
+  ctx.globalAlpha = alpha
+  const stone = ctx.createLinearGradient(-half, top, half, 0)
+  stone.addColorStop(0, '#26343d')
+  stone.addColorStop(.5, '#101a24')
+  stone.addColorStop(1, '#070d15')
+  ctx.fillStyle = stone
+  ctx.strokeStyle = 'rgba(168, 185, 183, .36)'
+  ctx.lineWidth = Math.max(1, width * .018)
+  ctx.beginPath()
+  ctx.moveTo(-half * .7, 0)
+  ctx.lineTo(-half * .7, top + height * .2)
+  ctx.lineTo(-half * .42, top + height * .15)
+  ctx.lineTo(-half * .34, top + height * .04)
+  ctx.lineTo(0, top - height * .13)
+  ctx.lineTo(half * .34, top + height * .04)
+  ctx.lineTo(half * .42, top + height * .15)
+  ctx.lineTo(half * .7, top + height * .2)
+  ctx.lineTo(half * .7, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+
+  // One continuous snow lip follows the roof ridge; a second inverted V here
+  // used to create a field of accidental M-shaped marks.
+  ctx.strokeStyle = 'rgba(218, 225, 216, .64)'
+  ctx.lineWidth = Math.max(1, width * .014)
+  ctx.beginPath()
+  ctx.moveTo(-half * .38, top + height * .06)
+  ctx.quadraticCurveTo(0, top - height * .12, half * .38, top + height * .06)
+  ctx.stroke()
+
+  // A wall pier and one closed flying-buttress profile on each side establish
+  // a believable load path instead of loose M-shaped lines.
+  for (const side of [-1, 1] as const) {
+    if (variant % 3 !== 0) continue
+    const pinX = side * half * .56
+    const pierX = side * half * .9
+    ctx.fillStyle = 'rgba(20, 31, 39, .8)'
+    ctx.strokeStyle = 'rgba(177, 195, 191, .42)'
+    ctx.lineWidth = Math.max(1, width * .014)
+    ctx.beginPath()
+    ctx.moveTo(pierX - side * half * .1, 0)
+    ctx.lineTo(pierX - side * half * .1, top + height * .24)
+    ctx.lineTo(pierX, top + height * .13)
+    ctx.lineTo(pierX + side * half * .1, top + height * .24)
+    ctx.lineTo(pierX + side * half * .1, 0)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(214, 223, 215, .52)'
+    ctx.beginPath()
+    ctx.moveTo(pierX - side * half * .09, top + height * .24)
+    ctx.lineTo(pierX, top + height * .11)
+    ctx.lineTo(pierX + side * half * .09, top + height * .24)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(22, 34, 41, .9)'
+    ctx.strokeStyle = 'rgba(203, 190, 147, .46)'
+    ctx.beginPath()
+    ctx.moveTo(pinX, top + height * .5)
+    ctx.lineTo(pierX - side * half * .055, top + height * .28)
+    ctx.lineTo(pierX + side * half * .055, top + height * .28)
+    ctx.lineTo(pinX + side * half * .07, top + height * .53)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+  }
+
+  ctx.strokeStyle = 'rgba(152, 184, 184, .58)'
+  ctx.lineWidth = Math.max(1, width * .012)
+  const windowRows = 2 + (variant % 2)
+  for (let row = 0; row < windowRows; row += 1) {
+    const rowY = top + height * (.3 + row * .17)
+    const windowWidth = half * (.16 - row * .015)
+    ctx.beginPath()
+    ctx.moveTo(-windowWidth, rowY + height * .09)
+    ctx.lineTo(-windowWidth, rowY + height * .025)
+    ctx.quadraticCurveTo(0, rowY - height * .06, windowWidth, rowY + height * .025)
+    ctx.lineTo(windowWidth, rowY + height * .09)
+    ctx.moveTo(0, rowY - height * .055)
+    ctx.lineTo(0, rowY + height * .09)
+    ctx.stroke()
+  }
+  ctx.strokeStyle = 'rgba(204, 191, 145, .3)'
+  ctx.lineWidth = Math.max(1, width * .006)
+  ctx.beginPath()
+  ctx.moveTo(-half * .76, top + height * .72)
+  ctx.lineTo(-half * .56, top + height * .56)
+  ctx.lineTo(-half * .38, top + height * .72)
+  ctx.moveTo(half * .76, top + height * .72)
+  ctx.lineTo(half * .56, top + height * .56)
+  ctx.lineTo(half * .38, top + height * .72)
+  ctx.stroke()
   ctx.restore()
 }
 
@@ -214,6 +361,75 @@ const drawMonument = (ctx: CanvasRenderingContext2D, x: number, base: number, wi
   ctx.stroke()
   ctx.restore()
 
+  // Recessed side niches and a rose-window tracery give the central memorial
+  // a carved interior instead of a single flat silhouette.
+  ctx.save()
+  ctx.globalAlpha = .72
+  for (const side of [-1, 1] as const) {
+    const nicheX = side * width * .28
+    ctx.fillStyle = 'rgba(5, 9, 14, .74)'
+    ctx.strokeStyle = 'rgba(190, 176, 133, .5)'
+    ctx.lineWidth = Math.max(1, width * .006)
+    ctx.beginPath()
+    ctx.moveTo(nicheX - side * width * .075, -height * .16)
+    ctx.lineTo(nicheX - side * width * .075, -height * .42)
+    ctx.quadraticCurveTo(nicheX, -height * .58, nicheX + side * width * .075, -height * .42)
+    ctx.lineTo(nicheX + side * width * .075, -height * .16)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(139, 166, 164, .48)'
+    ctx.beginPath()
+    ctx.moveTo(nicheX, -height * .51)
+    ctx.lineTo(nicheX, -height * .2)
+    ctx.moveTo(nicheX - side * width * .05, -height * .37)
+    ctx.lineTo(nicheX + side * width * .05, -height * .37)
+    ctx.stroke()
+  }
+  ctx.strokeStyle = 'rgba(215, 193, 141, .64)'
+  ctx.lineWidth = Math.max(1, width * .005)
+  ctx.beginPath()
+  ctx.arc(0, -height * .62, width * .095, 0, Math.PI * 2)
+  for (let spoke = 0; spoke < 8; spoke += 1) {
+    const angle = spoke * Math.PI / 4
+    ctx.moveTo(0, -height * .62)
+    ctx.lineTo(Math.cos(angle) * width * .095, -height * .62 + Math.sin(angle) * width * .095)
+  }
+  ctx.stroke()
+  ctx.restore()
+
+  // Stepped plinth and snow shelves separate the monument from the ground.
+  ctx.save()
+  ctx.fillStyle = 'rgba(12, 18, 23, .94)'
+  ctx.strokeStyle = 'rgba(188, 177, 143, .5)'
+  ctx.lineWidth = Math.max(1, width * .008)
+  ctx.beginPath()
+  ctx.moveTo(-half * 1.12, 0)
+  ctx.lineTo(half * 1.12, 0)
+  ctx.lineTo(half * .98, height * .065)
+  ctx.lineTo(-half * .98, height * .065)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(-half * .94, height * .065)
+  ctx.lineTo(half * .94, height * .065)
+  ctx.lineTo(half * .82, height * .115)
+  ctx.lineTo(-half * .82, height * .115)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = 'rgba(226, 233, 224, .78)'
+  ctx.beginPath()
+  ctx.moveTo(-half * 1.02, height * .01)
+  ctx.quadraticCurveTo(-half * .45, -height * .03, 0, height * .012)
+  ctx.quadraticCurveTo(half * .48, -height * .02, half * 1.02, height * .01)
+  ctx.lineTo(half * .92, height * .035)
+  ctx.quadraticCurveTo(0, height * .055, -half * .92, height * .035)
+  ctx.closePath()
+  ctx.fill()
+  ctx.restore()
+
   if (pulse > 0) {
     ctx.save()
     ctx.globalAlpha = pulse * .62
@@ -247,49 +463,69 @@ const drawWinterBell = (ctx: CanvasRenderingContext2D, width: number, height: nu
   ctx.fillStyle = snowGradient
   ctx.fillRect(0, 0, width, height)
 
-  // Reserved image plate: replace winter-bell-bg.png when the finished background is available.
+  // Low-alpha art plate keeps the supplied 90s reference behind the snow layers.
   if (backgroundImage?.complete && backgroundImage.naturalWidth > 0) {
     ctx.save()
-    const imageScale = Math.max(width / backgroundImage.naturalWidth, height / backgroundImage.naturalHeight)
+    const imageScale = Math.max(width / backgroundImage.naturalWidth, height / backgroundImage.naturalHeight) * 1.12
     const imageWidth = backgroundImage.naturalWidth * imageScale
     const imageHeight = backgroundImage.naturalHeight * imageScale
-    ctx.globalAlpha = .14
-    ctx.translate(parallaxX * width * .012, parallaxY * height * .008)
+    ctx.globalAlpha = .5
+    ctx.translate(parallaxX * width * .04, parallaxY * height * .022)
     ctx.drawImage(backgroundImage, (width - imageWidth) / 2, (height - imageHeight) / 2, imageWidth, imageHeight)
     ctx.restore()
   } else {
     ctx.save()
     ctx.globalAlpha = .1
-    ctx.translate(parallaxX * width * .012, parallaxY * height * .008)
+    ctx.translate(parallaxX * width * .04, parallaxY * height * .022)
     ctx.fillStyle = '#60747a'
     ctx.fillRect(-width * .1, height * .09, width * 1.2, height * .48)
     ctx.restore()
   }
 
-  // Far ridge and pointed silhouettes move least.
+  // Far skyline: varied Gothic towers, open buttresses and lit lancets hold
+  // the deepest plane behind the snow field.
   ctx.save()
-  ctx.translate(parallaxX * width * .018, parallaxY * height * .012)
-  ctx.fillStyle = 'rgba(9, 15, 23, .78)'
+    ctx.translate(parallaxX * width * .032, parallaxY * height * .018)
+  const skyline = [
+    { x: .04, w: .1, h: .24 },
+    { x: .2, w: .08, h: .2 },
+    { x: .34, w: .13, h: .33 },
+    { x: .55, w: .09, h: .22 },
+    { x: .72, w: .12, h: .29 },
+    { x: .92, w: .1, h: .23 },
+  ]
+  skyline.forEach((tower, index) => drawDistantGothicTower(ctx, width * tower.x, height * (.64 + (index % 3) * .035), width * tower.w, height * tower.h, .38 + (index % 3) * .06, index))
+  ctx.restore()
+
+  // Open-air ridge and cloud shelves keep the horizon outdoors rather than
+  // reading as a ceiling, arcade or interior window grid.
+  ctx.save()
+  ctx.translate(parallaxX * width * .052, parallaxY * height * .03)
+  ctx.fillStyle = 'rgba(7, 13, 21, .84)'
   ctx.beginPath()
   ctx.moveTo(-width * .08, height * .65)
-  for (let peak = 0; peak < 12; peak += 1) {
-    const x = width * (.02 + peak * .1)
-    ctx.lineTo(x, height * (.35 + (peak % 3) * .05))
-    ctx.lineTo(x + width * .04, height * .65)
-  }
+  ctx.bezierCurveTo(width * .08, height * .55, width * .16, height * .61, width * .28, height * .52)
+  ctx.bezierCurveTo(width * .41, height * .43, width * .5, height * .6, width * .62, height * .5)
+  ctx.bezierCurveTo(width * .76, height * .4, width * .87, height * .58, width * 1.08, height * .48)
   ctx.lineTo(width * 1.1, height * .65)
   ctx.closePath()
   ctx.fill()
-  ctx.strokeStyle = 'rgba(175, 192, 190, .18)'
+  ctx.strokeStyle = 'rgba(164, 182, 181, .3)'
+  ctx.lineWidth = Math.max(1, width * .0022)
+  ctx.beginPath()
+  ctx.moveTo(-width * .04, height * .61)
+  ctx.bezierCurveTo(width * .18, height * .51, width * .31, height * .6, width * .47, height * .51)
+  ctx.bezierCurveTo(width * .68, height * .39, width * .85, height * .58, width * 1.04, height * .48)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(184, 198, 197, .18)'
   ctx.lineWidth = Math.max(1, width * .003)
-  for (let spire = 0; spire < 7; spire += 1) {
-    const x = width * (.1 + spire * .14)
+  for (let cloud = 0; cloud < 4; cloud += 1) {
+    const cloudX = width * (.08 + cloud * .27)
+    const cloudY = height * (.2 + (cloud % 2) * .08)
     ctx.beginPath()
-    ctx.moveTo(x, height * .5)
-    ctx.lineTo(x, height * .24)
-    ctx.lineTo(x + width * .025, height * .31)
-    ctx.lineTo(x + width * .05, height * .24)
-    ctx.lineTo(x + width * .05, height * .5)
+    ctx.moveTo(cloudX - width * .1, cloudY)
+    ctx.bezierCurveTo(cloudX - width * .04, cloudY - height * .025, cloudX + width * .02, cloudY + height * .018, cloudX + width * .08, cloudY - height * .01)
+    ctx.bezierCurveTo(cloudX + width * .14, cloudY - height * .035, cloudX + width * .18, cloudY + height * .012, cloudX + width * .23, cloudY)
     ctx.stroke()
   }
   ctx.restore()
@@ -309,6 +545,22 @@ const drawWinterBell = (ctx: CanvasRenderingContext2D, width: number, height: nu
   ctx.lineTo(-width * .1, height)
   ctx.closePath()
   ctx.fill()
+  ctx.strokeStyle = 'rgba(234, 239, 231, .52)'
+  ctx.lineWidth = Math.max(1, width * .003)
+  ctx.beginPath()
+  ctx.moveTo(-width * .08, height * .62)
+  ctx.bezierCurveTo(width * .2, height * .54, width * .35, height * .7, width * .56, height * .6)
+  ctx.bezierCurveTo(width * .76, height * .5, width * .92, height * .66, width * 1.08, height * .56)
+  ctx.stroke()
+  ctx.strokeStyle = 'rgba(80, 100, 109, .36)'
+  ctx.lineWidth = Math.max(1, width * .002)
+  for (let driftLine = 0; driftLine < 6; driftLine += 1) {
+    const y = height * (.68 + driftLine * .028)
+    ctx.beginPath()
+    ctx.moveTo(width * (.08 - driftLine * .025), y)
+    ctx.quadraticCurveTo(width * .5, y - height * .018, width * (.94 + driftLine * .01), y + height * .012)
+    ctx.stroke()
+  }
   ctx.restore()
 
   // Grave rows are intentionally split into three parallax bands.
@@ -324,10 +576,56 @@ const drawWinterBell = (ctx: CanvasRenderingContext2D, width: number, height: nu
     for (let index = 0; index < layer.count; index += 1) {
       const x = width * (-.04 + index / (layer.count - 1) * 1.08) + (random() - .5) * width * .055
       const h = height * (.09 + random() * .13) * layer.scale
-      drawSnowTombstone(ctx, x, height * layer.y + (random() - .5) * height * .025, width * (.035 + random() * .026) * layer.scale, h, layer.alpha, (random() - .5) * .09, layerIndex < 2, layer.tone)
+      drawSnowTombstone(ctx, x, height * layer.y + (random() - .5) * height * .025, width * (.035 + random() * .026) * layer.scale, h, layer.alpha, (random() - .5) * .09, layerIndex < 2, layer.tone, index + layerIndex * 3)
     }
     ctx.restore()
   })
+
+  // A close iron rail supplies a fourth scale cue in front of the grave rows.
+  ctx.save()
+  ctx.translate(parallaxX * width * .15, parallaxY * height * .1)
+  ctx.strokeStyle = 'rgba(35, 45, 51, .88)'
+  ctx.lineWidth = Math.max(1.5, width * .004)
+  const railY = height * .855
+  ctx.beginPath()
+  ctx.moveTo(-width * .05, railY)
+  ctx.lineTo(width * 1.05, railY + height * .012)
+  ctx.moveTo(-width * .05, railY + height * .035)
+  ctx.lineTo(width * 1.05, railY + height * .047)
+  ctx.stroke()
+  for (let post = 0; post < 14; post += 1) {
+    const postX = width * (-.02 + post * .08)
+    ctx.beginPath()
+    ctx.moveTo(postX, railY - height * .075)
+    ctx.lineTo(postX, railY + height * .065)
+    ctx.lineTo(postX + width * .012, railY + height * .065)
+    ctx.lineTo(postX + width * .012, railY - height * .075)
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(211, 221, 213, .72)'
+    ctx.beginPath()
+    ctx.moveTo(postX - width * .009, railY - height * .075)
+    ctx.lineTo(postX + width * .006, railY - height * .11)
+    ctx.lineTo(postX + width * .021, railY - height * .075)
+    ctx.closePath()
+    ctx.fill()
+    if (post < 13) {
+      ctx.strokeStyle = 'rgba(51, 66, 71, .74)'
+      ctx.lineWidth = Math.max(1, width * .0025)
+      ctx.beginPath()
+      ctx.moveTo(postX + width * .012, railY - height * .01)
+      ctx.lineTo(postX + width * .08, railY - height * .06)
+      ctx.moveTo(postX + width * .012, railY + height * .04)
+      ctx.lineTo(postX + width * .08, railY - height * .01)
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(229, 235, 228, .42)'
+      ctx.lineWidth = Math.max(1, width * .003)
+      ctx.beginPath()
+      ctx.moveTo(postX + width * .018, railY - height * .075)
+      ctx.lineTo(postX + width * .076, railY - height * .04)
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
 
   const monumentX = width * .5 + parallaxX * width * .12
   const monumentBase = height * .93 + parallaxY * height * .08
@@ -454,7 +752,7 @@ export default function WinterBellScene({ reducedMotion = false, effectsEnabled 
       stage.removeEventListener('pointermove', onPointerMove)
       stage.removeEventListener('pointerleave', onPointerLeave)
     }
-  }, [pulse, reducedMotion])
+  }, [reducedMotion])
 
   return (
     <main className="winter-bell-scene" data-scene="winter-bell" aria-labelledby="winter-bell-title">
@@ -472,9 +770,6 @@ export default function WinterBellScene({ reducedMotion = false, effectsEnabled 
           <button type="button" onClick={ringBell}><BellRing aria-hidden="true" /><span>敲响冬之钟</span></button>
         </section>
         <div className="winter-bell-badge" aria-live="polite"><Snowflake aria-hidden="true" /><span>{pulse ? '钟声穿过雪幕' : '雪落无声'}</span></div>
-        <nav className="winter-bell-nav" aria-label="冬之钟导航">
-          <button type="button" onClick={() => { window.location.hash = '#/cemetery' }}><ArrowLeft aria-hidden="true" /><span>返回墓地</span></button>
-        </nav>
       </div>
     </main>
   )
